@@ -14,7 +14,6 @@ const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"]; // IMPORTANT: Add your email here
 const AIRTABLE_BASE_ID = 'appCQATw4gkWsJSMV';
 const AIRTABLE_TABLE_NAME = 'Bookings';
 const AIRTABLE_BANNER_TABLE_NAME = 'AlertBanner';
-const AIRTABLE_API_KEY = 'patygW0NdWqSupAbh.cfb560a3f04ebe906e3275fc9d5d030ed3937ea5b8eca8ec7109d3380a82b7ab';
 
 const PERIOD_TIMES = ["8:05 - 8:35", "8:35 - 9:05", "9:05 - 9:35", "9:50 - 10:20", "10:20 - 10:50", "11:50 - 12:20", "12:20 - 12:50", "12:50 - 1:20", "1:35 - 2:05", "2:05 - 2:35"];
 const BOOKING_REASONS = ["Book Exchange", "Partnering", "Presentation", "Closed", "Other"];
@@ -298,15 +297,11 @@ async function handleBookingSubmit(event) {
         fields.Date = bookingForm.dataset.date;
         fields.Period = parseInt(bookingForm.dataset.period);
     }
-
-    const url = isEditing ? `${AIRTABLE_API_URL}/${recordId}` : AIRTABLE_API_URL;
-    const method = isEditing ? 'PATCH' : 'POST';
-
+    
     try {
-        const response = await fetch(url, {
-            method: method,
+        const response = await fetch('/.netlify/functions/create-booking', {
+            method: 'POST',
             headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -323,16 +318,12 @@ async function handleBookingSubmit(event) {
         alert(`Could not save booking: ${error.message}`);
         console.error("Booking/editing failed:", error);
     }
-}
 
 async function cancelBooking(recordId) {
     if (!confirm('Are you sure you want to cancel this booking?')) return;
     try {
-        await fetch(`${AIRTABLE_API_URL}/${recordId}`, {
+        await fetch(`/.netlify/functions/delete-booking?id=${recordId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-            }
         });
         loadScheduleForSelectedDate();
     } catch (error) {
