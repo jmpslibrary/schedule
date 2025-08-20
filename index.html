@@ -33,6 +33,7 @@
                 font-size: 16px;
             }
             .controls-container .nav-button { display: none; }
+            
             .schedule-grid .grid-header:not(.current-day-header):not(:first-child),
             .schedule-grid .grid-cell:not(.current-day) { display: none; }
             .schedule-grid { grid-template-columns: auto 1fr !important; gap: 8px !important; }
@@ -80,6 +81,28 @@
             padding: 12px 16px !important;
             font-size: 16px !important;
         }
+
+    .site-footer {
+        /* This matches the width and centering of your main content */
+        max-width: 80rem; /* 80rem is the equivalent of Tailwind's max-w-7xl */
+        margin-left: auto;
+        margin-right: auto;
+
+        /* This adds the border and spacing */
+        border-top: 1px solid #e5e7eb; /* This is a light gray, similar to Tailwind's gray-200 */
+        padding-top: 0.5rem;    /* Adds space above the text */
+        padding-bottom: 2rem; /* Adds space below the text */
+        padding-left: 1rem;   /* Adds space on the sides */
+        margin-top: 1rem;     /* Adds space between the schedule and the footer */
+    }
+
+    .site-footer p {
+        /* This styles and aligns the text */
+        text-align: right;
+        font-size: 0.775rem; /* Small text, like Tailwind's text-sm */
+        color: #6b7280;     /* Muted gray color, like Tailwind's gray-500 */
+    }
+    
     </style>
 </head>
 <body class="bg-gray-50 font-sans p-3 sm:p-6 md:p-10">
@@ -162,6 +185,10 @@
             </div>
         </div>
     </div>
+    
+    <footer class="site-footer">
+        <p class="tracking-tight">jmpslibrary.github.io/schedule</p>
+    </footer>
 
     <!-- Mobile-optimized Booking Modal -->
     <div id="booking-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4 sm:p-0">

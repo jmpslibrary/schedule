@@ -620,7 +620,6 @@ function updateDayInfo(dateString) {
 function drawGridStructure() {
     gridContainer.innerHTML = '';
     const headers = ['', 'Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
-
     headers.forEach((h, i) => {
         const header = document.createElement('div');
         header.className = 'grid-header p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
@@ -634,18 +633,31 @@ function drawGridStructure() {
         header.appendChild(dateDiv);
         gridContainer.appendChild(header);
     });
-
+    
+    // Periods where separators should be added after them
+    const separatorAfterPeriods = [3, 5, 8];
+    
     for (let p = 1; p <= 10; p++) {
         const pLabel = document.createElement('div');
         pLabel.className = 'grid-label p-1 sm:p-2 text-center font-semibold text-gray-600 bg-gray-100 text-xs rounded-md border-b border-solid';
-        pLabel.innerHTML = `<strong class="block text-xs sm:text-sm">P${p}</strong><small class="period-time text-gray-500 text-xs">${PERIOD_TIMES[p-1]}</small>`;
+        pLabel.innerHTML = `<strong class="block text-xs sm:text-sm">Period ${p}</strong><small class="period-time text-gray-500 text-xs">${PERIOD_TIMES[p-1]}</small>`;
         gridContainer.appendChild(pLabel);
-
+        
         for (let d = 1; d <= 5; d++) {
             const cell = document.createElement('div');
             cell.id = `D${d}-P${p}`;
             cell.className = `grid-cell D${d} p-1 sm:p-2 text-center border border-gray-200 rounded-md transition-colors duration-200 min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs sm:text-sm`;
             gridContainer.appendChild(cell);
+        }
+        
+        // Add separator line after specific periods
+        if (separatorAfterPeriods.includes(p)) {
+            // Create a single separator element that spans all columns
+            const separator = document.createElement('div');
+            separator.className = 'grid-separator h-0 border-t-2 border-gray-300';
+            separator.style.gridColumn = '1 / -1'; // Span all columns
+            separator.style.margin = '4px 0'; // Add some vertical spacing
+            gridContainer.appendChild(separator);
         }
     }
 }
