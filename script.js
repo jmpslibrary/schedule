@@ -389,8 +389,8 @@ async function fetchAndPopulateBookings() {
                 
                 const actionsHTML = `
                     <div class="booking-actions absolute top-1 right-1 flex items-center gap-1 sm:gap-2 z-10">
-                        <span class="material-symbols-outlined text-blue-700 hover:text-blue-900 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 18px;" title="Edit Booking" onclick="showEditModal('${record.id}')">edit</span>
-                        <span class="material-symbols-outlined text-red-600 hover:text-red-800 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 18px;" title="Cancel Booking" onclick="cancelBooking('${record.id}')">cancel</span>
+                        <span class="material-symbols-outlined text-gray-600 hover:text-gray-50 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 20px;" title="Edit Booking" onclick="showEditModal('${record.id}')">edit</span>
+                        <span class="material-symbols-outlined text-gray-600 hover:text-gray-50 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 20px;" title="Cancel Booking" onclick="cancelBooking('${record.id}')">delete</span>
                     </div>`;
 
                 if (bookingReason === "Closed") {
@@ -669,7 +669,7 @@ header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semi
     for (let p = 1; p <= 10; p++) {
         const pLabel = document.createElement('div');
         pLabel.className = 'grid-label p-1 sm:p-2 text-center font-semibold text-gray-600 bg-gray-100 text-xs rounded-md border-b border-solid';
-        pLabel.innerHTML = `<strong class="block text-xs sm:text-sm">Period ${p}</strong><small class="period-time text-gray-500 text-xs">${PERIOD_TIMES[p-1]}</small>`;
+        pLabel.innerHTML = `<strong class="block text-md sm:text-sm">Period ${p}</strong><small class="period-time text-gray-500 text-xs">${PERIOD_TIMES[p-1]}</small>`;
         gridContainer.appendChild(pLabel);
         
         for (let d = 1; d <= 5; d++) {
