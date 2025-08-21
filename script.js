@@ -41,6 +41,7 @@ const loginBtn = document.getElementById('login-btn'), logoutBtn = document.getE
 const alertBanner = document.getElementById('alert-banner'), adminBtn = document.getElementById('admin-btn'), adminModal = document.getElementById('admin-modal'), adminForm = document.getElementById('admin-form'), cancelAdminBtn = document.getElementById('cancel-admin-btn'), deleteBannerBtn = document.getElementById('delete-banner-btn');
 // Mobile Elements
 const noCurrentDayMobile = document.getElementById('no-current-day-mobile'), mobileCurrentDayInfo = document.getElementById('mobile-current-day-info'), mobilePrevDay = document.getElementById('mobile-prev-day'), mobileNextDay = document.getElementById('mobile-next-day');
+const mobileDayInfo = document.getElementById('mobile-day-info');
 
 let currentWeekDates = [], appInitialized = false, activeBannerRecordId = null;
 
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 appContent.classList.remove('hidden');
                 userInfo.classList.remove('hidden');
                 userName.textContent = user.displayName;
+                mobileDayInfo.classList.remove('hidden');
                 if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                     adminBtn.classList.remove('hidden');
                 }
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userInfo.classList.add('hidden');
             userName.textContent = '';
             adminBtn.classList.add('hidden');
+            mobileDayInfo.classList.add('hidden');
             appInitialized = false;
         }
     });
@@ -615,7 +618,7 @@ function updateDayInfo(dateString) {
         document.querySelector(`.grid-header.D${dayNumber}`).classList.add('current-day-header');
         
         const dayDate = new Date(dateString.replace(/-/g, '/'));
-        mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+        mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
 
     } else {
         // This is NOT a school day
