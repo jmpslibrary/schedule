@@ -438,7 +438,8 @@ async function fetchAndPopulateBookings() {
 
     try {
         const response = await fetch(fetchURL, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
-        const data = await response.json(); if (!response.ok) throw new Error(data.error.message);
+        const data = await response.json(); 
+        if (!response.ok) throw new Error(data.error.message);
 
         data.records.forEach(record => {
             const startPeriod = record.fields.StartPeriod;
@@ -446,13 +447,15 @@ async function fetchAndPopulateBookings() {
             const bookingReason = record.fields.BookingReason;
             const recordDate = new Date(record.fields.Date + 'T00:00:00');
             const dateStr = (recordDate.getMonth() + 1) + '/' + recordDate.getDate() + '/' + recordDate.getFullYear();
-            const dayType = SCHOOL_CALENDAR[dateStr];
-            if (!dayType || !dayType.startsWith('Day')) return;
-
-            const dayNumber = dayType.split(' ')[1];
+            
+            // Find which column this date belongs to
+            const columnIndex = currentWeekDates.findIndex(d => d === new Date(record.fields.Date).toISOString().split('T')[0]);
+            if (columnIndex === -1) return; // Date not in current week
+            
+            const columnNumber = columnIndex + 1; // Convert to 1-based indexing
 
             for (let p = startPeriod; p <= endPeriod; p++) {
-                const cellId = `D${dayNumber}-P${p}`;
+                const cellId = `D${columnNumber}-P${p}`;
                 const cell = document.getElementById(cellId);
                 if (!cell) continue;
 
@@ -468,7 +471,7 @@ async function fetchAndPopulateBookings() {
                     </div>`;
 
                 if (bookingReason === "Closed") {
-                    cell.className = `grid-cell D${dayNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-red-100 text-red-800`;
+                    cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-red-100 text-red-800`;
                     if (isFirstCell) {
                         const closedIcon = REASON_ICONS["Closed"] || 'do_not_disturb';
                         cell.innerHTML = `
@@ -478,7 +481,6 @@ async function fetchAndPopulateBookings() {
                                 <span class="text-[12px] leading-none">Closed</span>
                             </div>`;
                     } else {
-                        // NEW LOGIC: Add the continuation icon for "Closed" blocks
                         cell.innerHTML = `
                             <div class="flex items-center justify-center h-full">
                                 <span class="material-symbols-outlined text-red-300" style="font-size: 24px;">arrow_cool_down</span>
@@ -486,8 +488,7 @@ async function fetchAndPopulateBookings() {
                         `;
                     }
                 } else {
-                    // This is a regular booking
-                    cell.className = `grid-cell D${dayNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-blue-100 text-blue-800`;
+                    cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-blue-100 text-blue-800`;
                     if (isFirstCell) {
                         let iconName = REASON_ICONS[bookingReason] || REASON_ICONS["Other"];
                         cell.innerHTML = `
@@ -500,7 +501,6 @@ async function fetchAndPopulateBookings() {
                                 </small>
                             </div>`;
                     } else {
-                        // NEW LOGIC: Add the continuation icon for regular booking blocks
                         cell.innerHTML = `
                             <div class="flex items-center justify-center h-full">
                                 <span class="material-symbols-outlined text-blue-300" style="font-size: 24px;">arrow_cool_down</span>
@@ -511,14 +511,10 @@ async function fetchAndPopulateBookings() {
 
                 // For mobile: mark current day cells
                 const selectedDateStr = datePicker.value;
-                const [year, month, dayNum] = selectedDateStr.split('-');
-                const mdyFormat = `${parseInt(month)}/${parseInt(dayNum)}/${year}`;
-                const currentDayType = SCHOOL_CALENDAR[mdyFormat];
-                if (currentDayType && currentDayType.startsWith('Day')) {
-                    const currentDayNumber = currentDayType.split(' ')[1];
-                    if (dayNumber == currentDayNumber) {
-                        cell.classList.add('current-day');
-                    }
+                const selectedDate = new Date(selectedDateStr + 'T00:00:00');
+                const selectedMDY = (selectedDate.getMonth() + 1) + '/' + selectedDate.getDate() + '/' + selectedDate.getFullYear();
+                if (dateStr === selectedMDY) {
+                    cell.classList.add('current-day');
                 }
             }
         });
@@ -529,30 +525,40 @@ async function fetchAndPopulateBookings() {
 }
 
 function resetGridToAvailable() {
-    document.querySelectorAll('.grid-cell').forEach(cell => {
-        cell.className = 'grid-cell p-1 sm:p-2 text-center min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs border-b border-solid border-green-200 sm:text-sm'; // Reset classes
-        const [_, day, period] = cell.id.match(/D(\d+)-P(\d+)/);
-        const bookingDateForThisCell = currentWeekDates[day - 1];
+    const selectedDate = new Date(datePicker.value + 'T12:00:00');
+    const selectedDateString = selectedDate.toLocaleDateString();
 
-        if (bookingDateForThisCell) {
-            cell.classList.add('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
-            cell.innerHTML = 'Available';
-            cell.onclick = () => showBookingModal(day, period, bookingDateForThisCell);
-            
-            // For mobile: ensure current day cells are marked properly
-            const selectedDateStr = datePicker.value;
-            const [year, month, dayNum] = selectedDateStr.split('-');
-            const mdyFormat = `${parseInt(month)}/${parseInt(dayNum)}/${year}`;
+    document.querySelectorAll('.grid-cell').forEach(cell => {
+        const [_, day, period] = cell.id.match(/D(\d+)-P(\d+)/);
+        
+        // Base classes, ensuring the structural D{day} class is always present.
+        cell.className = `grid-cell D${day} p-1 sm:p-2 text-center min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs border-b border-solid border-gray-200 sm:text-sm`;
+
+        const dateStringForThisCell = currentWeekDates[day - 1]; // This is a STRING like "2025-09-02"
+
+        if (dateStringForThisCell) {
+            // THIS IS THE FIX: Convert the string back into a real Date object.
+            const dateForThisCell = new Date(dateStringForThisCell + 'T12:00:00');
+
+            const mdyFormat = (dateForThisCell.getMonth() + 1) + '/' + dateForThisCell.getDate() + '/' + dateForThisCell.getFullYear();
             const dayType = SCHOOL_CALENDAR[mdyFormat];
-            
-            if (dayType && dayType.startsWith('Day')) {
-                const currentDayNumber = dayType.split(' ')[1];
-                if (day == currentDayNumber) {
-                    cell.classList.add('current-day');
-                }
+
+            if (dayType && dayType.startsWith("Day")) {
+                cell.classList.add('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
+                cell.innerHTML = 'Available';
+                cell.onclick = () => showBookingModal(day, period, dateStringForThisCell);
+            } else {
+                cell.classList.add('bg-gray-100', 'text-gray-500');
+                cell.innerHTML = dayType || '';
+                cell.onclick = null;
             }
+
+            if (dateForThisCell.toLocaleDateString() === selectedDateString) {
+                cell.classList.add('current-day');
+            }
+
         } else {
-            cell.classList.add('bg-gray-100'); // Inactive day
+            cell.classList.add('bg-gray-100');
             cell.innerHTML = '';
             cell.onclick = null;
         }
@@ -627,35 +633,26 @@ function loadScheduleForSelectedDate() {
 }
 
 function getWeekDateInfo(selectedDateString) {
-    const weekDates = [null, null, null, null, null];
-    const dayType = SCHOOL_CALENDAR[selectedDateString];
-    if (!dayType || !dayType.startsWith('Day')) return weekDates;
-    const currentDayNumber = parseInt(dayType.split(' ')[1]);
-    const currentIndex = sortedCalendar.findIndex(entry => entry[0] === selectedDateString);
-    if (currentIndex === -1) return weekDates;
-    weekDates[currentDayNumber - 1] = selectedDateString;
-    let searchIndex = currentIndex - 1;
-    for (let d = currentDayNumber - 1; d > 0; d--) {
-        while (searchIndex >= 0) {
-            const [date, type] = sortedCalendar[searchIndex];
-            if (type === `Day ${d}`) {
-                weekDates[d - 1] = date;
-                break;
-            }
-            searchIndex--;
-        }
+    const weekDates = [null, null, null, null, null]; // Mon, Tue, Wed, Thu, Fri
+    const selectedDate = new Date(selectedDateString);
+    
+    // Get the Monday of the week containing the selected date
+    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Handle Sunday as 6 days from Monday
+    
+    const monday = new Date(selectedDate);
+    monday.setDate(selectedDate.getDate() - daysFromMonday);
+    
+    // Fill in the week dates (Monday through Friday) - include ALL weekdays
+    for (let i = 0; i < 5; i++) {
+        const currentDay = new Date(monday);
+        currentDay.setDate(monday.getDate() + i);
+        const dateString = (currentDay.getMonth() + 1) + '/' + currentDay.getDate() + '/' + currentDay.getFullYear();
+        
+        // Include ALL weekdays, regardless of whether they're school days
+        weekDates[i] = dateString;
     }
-    searchIndex = currentIndex + 1;
-    for (let d = currentDayNumber + 1; d <= 5; d++) {
-        while (searchIndex < sortedCalendar.length) {
-            const [date, type] = sortedCalendar[searchIndex];
-            if (type === `Day ${d}`) {
-                weekDates[d - 1] = date;
-                break;
-            }
-            searchIndex++;
-        }
-    }
+    
     return weekDates;
 }
 
@@ -666,32 +663,54 @@ function updateDayInfo(dateString) {
     const weekDates = getWeekDateInfo(dateString);
     currentWeekDates = weekDates.map(d => d ? new Date(d).toISOString().split('T')[0] : null);
 
-    // Update desktop headers
+    // Update desktop headers with actual dates
     for (let i = 0; i < 5; i++) {
         const headerDateDiv = document.querySelector(`.grid-header.D${i + 1} .header-date`);
         if (weekDates[i]) {
-            const d = new Date(weekDates[i].replace(/-/g, '/'));
-            headerDateDiv.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const d = new Date(weekDates[i]);
+            const dayType = SCHOOL_CALENDAR[weekDates[i]];
+            headerDateDiv.textContent = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
         } else {
             headerDateDiv.textContent = '';
         }
     }
+
+    // Update the header titles with the actual day types from the calendar
+    for (let i = 0; i < 5; i++) {
+        const headerTitleSpan = document.querySelector(`.grid-header.D${i + 1} span`);
+        if (weekDates[i]) {
+            const dayType = SCHOOL_CALENDAR[weekDates[i]];
+            headerTitleSpan.textContent = dayType || `Day ${i + 1}`;
+        } else {
+            headerTitleSpan.textContent = `Day ${i + 1}`;
+        }
+    }
     
     const dayType = SCHOOL_CALENDAR[dateString];
-
+    const selectedDate = new Date(dateString);
+    const selectedDayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
     if (dayType && dayType.startsWith('Day')) {
         // This is a valid school day
-        // THE FIX: Explicitly hide the banner. This will now work correctly.
         infoBanner.classList.add('hidden');
-        
         noCurrentDayMobile.classList.add('hidden');
         gridContainer.classList.remove('hidden');
         
-        const dayNumber = dayType.split(' ')[1];
-        document.querySelectorAll(`.D${dayNumber}`).forEach(el => el.classList.add('current-day'));
-        document.querySelector(`.grid-header.D${dayNumber}`).classList.add('current-day-header');
+        // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
+        let columnIndex;
+        if (selectedDayOfWeek === 0) { // Sunday
+            columnIndex = -1; // Invalid for school days
+        } else {
+            columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
+        }
         
-        const dayDate = new Date(dateString.replace(/-/g, '/'));
+        if (columnIndex >= 0 && columnIndex < 5) {
+            document.querySelectorAll(`.D${columnIndex + 1}`).forEach(el => el.classList.add('current-day'));
+            document.querySelector(`.grid-header.D${columnIndex + 1}`).classList.add('current-day-header');
+        }
+        
+        const dayDate = new Date(dateString);
+        const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' });
         mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
 
     } else {
@@ -712,7 +731,8 @@ function updateDayInfo(dateString) {
         }
     }
 
-    // Update button states
+    // Update button states for week navigation
+    const selectedDateObj = new Date(dateString);
     const currentIndex = schoolDays.findIndex(entry => entry[0] === dateString);
     prevWeekBtn.disabled = currentIndex < 5 && currentIndex !== -1;
     nextWeekBtn.disabled = currentIndex >= schoolDays.length - 5;
@@ -725,7 +745,7 @@ function drawGridStructure() {
     const headers = ['', 'Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
     headers.forEach((h, i) => {
         const header = document.createElement('div');
-header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
+        header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
         if (i > 0) header.classList.add(`D${i}`);
         const title = document.createElement('span');
         title.className = "text-xs sm:text-sm font-bold";
@@ -755,11 +775,10 @@ header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semi
         
         // Add separator line after specific periods
         if (separatorAfterPeriods.includes(p)) {
-            // Create a single separator element that spans all columns
             const separator = document.createElement('div');
             separator.className = 'grid-separator h-0 border-t-2 border-gray-300';
-            separator.style.gridColumn = '1 / -1'; // Span all columns
-            separator.style.margin = '4px 0'; // Add some vertical spacing
+            separator.style.gridColumn = '1 / -1';
+            separator.style.margin = '4px 0';
             gridContainer.appendChild(separator);
         }
     }

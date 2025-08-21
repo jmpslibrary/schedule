@@ -44,6 +44,7 @@
             .booking-actions { gap: 6px !important; }
             .booking-actions .material-symbols-outlined { font-size: 22px !important; }
             .no-current-day-mobile { grid-column: 1 / -1; text-align: center; padding: 24px; background-color: #f9fafb; color: #6b7280; font-size: 18px; margin: 24px 0; border-radius: 16px; border: 2px dashed #d1d5db; }
+            #delete-booking-btn.btn-large { padding: 6px 16px !important; }
         }
         @media (min-width: 641px) {
             .no-current-day-mobile, .mobile-day-info { display: none !important; }
@@ -53,6 +54,7 @@
             .grid-header { padding: 18px !important; font-size: 18px !important; }
             .grid-label { padding: 18px 12px !important; font-size: 16px !important; min-width: 120px; }
             .period-time { font-size: 14px !important; }
+            #delete-booking-btn.btn-large { padding: 12px 16px !important; }
         }
         .schedule-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .schedule-grid { min-width: 400px; gap: 8px; }
@@ -72,14 +74,24 @@
             box-shadow: 0 6px 12px rgba(0,0,0,0.08); /* Slightly larger shadow */
         }
 
+        .grid-header.current-day-header {
+            background-color: #dbeafe !important; /* A light blue */
+            color: #1e40af !important;           /* A dark blue text */
+            border-bottom: 2px solid #3b82f6 !important; /* A solid blue bottom border */
+        }
+
+        /* Make sure the text inside the highlighted header is also dark blue */
+        .grid-header.current-day-header .header-title,
+        .grid-header.current-day-header .header-date {
+            color: #1e40af !important;
+        }
+
         .btn-large {
             padding: 12px 20px !important;
             font-size: 16px !important;
         }
 
-        #delete-booking-btn.btn-large {
-            padding: 12px 16px !important;
-        }
+
 
         #delete-booking-btn .material-symbols-outlined {
             vertical-align: middle;
@@ -91,33 +103,33 @@
             font-size: 16px !important;
         }
 
-    .site-footer {
-        /* This matches the width and centering of your main content */
-        max-width: 80rem; /* 80rem is the equivalent of Tailwind's max-w-7xl */
-        margin-left: auto;
-        margin-right: auto;
+        .site-footer {
+            /* This matches the width and centering of your main content */
+            max-width: 80rem; /* 80rem is the equivalent of Tailwind's max-w-7xl */
+            margin-left: auto;
+            margin-right: auto;
 
-        /* This adds the border and spacing */
-        border-top: 1px solid #e5e7eb; /* This is a light gray, similar to Tailwind's gray-200 */
-        padding-top: 0.5rem;    /* Adds space above the text */
-        padding-bottom: 2rem; /* Adds space below the text */
-        padding-left: 1rem;   /* Adds space on the sides */
-        margin-top: 1rem;     /* Adds space between the schedule and the footer */
-    }
+            /* This adds the border and spacing */
+            border-top: 1px solid #e5e7eb; /* This is a light gray, similar to Tailwind's gray-200 */
+            padding-top: 0.5rem;    /* Adds space above the text */
+            padding-bottom: 2rem; /* Adds space below the text */
+            padding-left: 1rem;   /* Adds space on the sides */
+            margin-top: 1rem;     /* Adds space between the schedule and the footer */
+        }
 
-    .site-footer p {
-        /* This styles and aligns the text */
-        text-align: right;
-        font-size: 0.775rem; /* Small text, like Tailwind's text-sm */
-        color: #6b7280;     /* Muted gray color, like Tailwind's gray-500 */
-    }
+        .site-footer p {
+            /* This styles and aligns the text */
+            text-align: right;
+            font-size: 0.775rem; /* Small text, like Tailwind's text-sm */
+            color: #6b7280;     /* Muted gray color, like Tailwind's gray-500 */
+        }
 
-    .school-name {
-        letter-spacing: 1.8px;
-        font-size: 0.75em;
-        line-height: 0.55rem;
-        padding-top: 10px;
-    }
+        .school-name {
+            letter-spacing: 1.8px;
+            font-size: 0.75em;
+            line-height: 0.55rem;
+            padding-top: 10px;
+        }
     
     </style>
 </head>
