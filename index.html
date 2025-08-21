@@ -109,8 +109,6 @@
         line-height: 0.55rem;
         padding-top: 10px;
     }
-
-    }
     
     </style>
 </head>
@@ -161,17 +159,17 @@
             </div>
             
             <!-- Mobile day indicator and navigation -->
-            <div class="mobile-day-info block sm:hidden mb-5 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="mobile-day-info block sm:hidden mb-5 p-4 bg-gray-100 border border-gray-200 rounded-lg">
                 <div class="flex items-center justify-between">
-                    <div class="text-base text-blue-800">
+                    <div class="text-base text-gray-600">
                         <span class="font-semibold" id="mobile-current-day-info">Select a date to view schedule</span>
                     </div>
                     <div class="flex gap-3"> <!-- Increased gap -->
-                        <button id="mobile-prev-day" class="p-3 text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="material-symbols-outlined text-xl">chevron_left</span>
+                        <button id="mobile-prev-day" class="p-3 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-xl">arrow_left_alt</span>
                         </button>
-                        <button id="mobile-next-day" class="p-3 text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="material-symbols-outlined text-xl">chevron_right</span>
+                        <button id="mobile-next-day" class="p-3 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-xl">arrow_right_alt</span>
                         </button>
                     </div>
                 </div>
@@ -210,9 +208,18 @@
             <form id="booking-form" class="flex flex-col gap-4 sm:gap-5">
                 <div>
                     <label for="teacher-name" class="block text-base font-medium text-gray-700 mb-2">Your Name:</label>
-                    <input type="text" id="teacher-name" required class="input-large w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="teacher-name" required class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 
+                <!-- THIS IS THE CORRECTED SECTION -->
+                <div>
+                    <label for="end-period" class="block text-base font-medium text-gray-700 mb-2">End Period:</label>
+                    <select id="end-period" required class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <!-- Options will be added by JavaScript -->
+                    </select>
+                </div>
+                <!-- END OF CORRECTION -->
+
                 <div>
                     <label class="block text-base font-medium text-gray-700 mb-3">Booking for:</label>
                     <div id="booking-reason-options" class="flex flex-col gap-2 max-h-36 overflow-y-auto">
@@ -220,7 +227,7 @@
                     </div>
                 </div>
                 
-                <input type="text" id="other-reason" placeholder="Please specify" class="input-large w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 hidden">
+                <input type="text" id="other-reason" placeholder="Please specify" class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 hidden">
 
                 <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-5">
                     <button type="button" id="cancel-booking-btn" class="btn-large order-2 sm:order-1 px-5 py-3 font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>

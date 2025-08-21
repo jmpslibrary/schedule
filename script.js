@@ -211,28 +211,46 @@ function populateReasonOptions() {
     });
 }
 
-
-function showBookingModal(dayNumber, period, dateString) {
+function showBookingModal(dayNumber, startPeriod, dateString) {
     bookingForm.reset();
     delete bookingForm.dataset.recordId;
     document.getElementById('teacher-name').value = auth.currentUser.displayName;
     otherReasonInput.style.display = 'none';
     document.querySelector('input[name="bookingReason"][value="Book Exchange"]').checked = true;
-    const displayDate = new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
-        dateStyle: 'full'
-    });
+
+    const displayDate = new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', { dateStyle: 'full' });
     modalTitle.innerHTML = `
         <span class="material-symbols-outlined align-middle text-blue-600">calendar_month</span>
         ${displayDate}<br>
         <span class="material-symbols-outlined align-middle text-blue-600">schedule</span>
-        Day ${dayNumber}, Period ${period}
-        `;
-    bookingForm.querySelector('.book').textContent = 'Book Slot';
-    bookingForm.dataset.period = period;
+        Starting Period ${startPeriod}
+    `;
+    
+    // --- NEW LOGIC for End Period Dropdown ---
+    const endPeriodSelect = document.getElementById('end-period');
+    endPeriodSelect.innerHTML = ''; // Clear previous options
+
+    // Find all consecutive available periods
+    for (let p = parseInt(startPeriod); p <= 10; p++) {
+        const cellId = `D${dayNumber}-P${p}`;
+        const cell = document.getElementById(cellId);
+        
+        if (cell && cell.classList.contains('available')) {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+            endPeriodSelect.appendChild(option);
+        } else {
+            // Stop if we hit a booked slot or the end of the day
+            break; 
+        }
+    }
+
+    bookingForm.querySelector('.book').textContent = 'Book Slot(s)';
+    bookingForm.dataset.startPeriod = startPeriod;
     bookingForm.dataset.date = dateString;
     bookingModal.classList.remove('hidden');
     bookingModal.classList.add('flex');
-    document.getElementById('teacher-name').focus();
 }
 
 async function showEditModal(recordId) {
@@ -280,9 +298,11 @@ function hideBookingModal() {
 async function handleBookingSubmit(event) {
     event.preventDefault();
     const teacherName = document.getElementById('teacher-name').value.trim();
+    const endPeriod = document.getElementById('end-period').value; // Get the end period
     const selectedReason = document.querySelector('input[name="bookingReason"]:checked').value;
     const bookingReason = selectedReason === 'Other' ? otherReasonInput.value.trim() : selectedReason;
-    if (!teacherName || !bookingReason) {
+
+    if (!teacherName || !bookingReason || !endPeriod) {
         alert('Please fill out all fields.');
         return;
     }
@@ -290,13 +310,11 @@ async function handleBookingSubmit(event) {
     const recordId = bookingForm.dataset.recordId;
     const isEditing = !!recordId;
 
-    const fields = {
-        "TeacherName": teacherName,
-        "BookingReason": bookingReason
-    };
+    const fields = { "TeacherName": teacherName, "BookingReason": bookingReason };
     if (!isEditing) {
         fields.Date = bookingForm.dataset.date;
-        fields.Period = parseInt(bookingForm.dataset.period);
+        fields.StartPeriod = parseInt(bookingForm.dataset.startPeriod);
+        fields.EndPeriod = parseInt(endPeriod); // Add EndPeriod to the data
     }
 
     const url = isEditing ? `${AIRTABLE_API_URL}/${recordId}` : AIRTABLE_API_URL;
@@ -304,19 +322,10 @@ async function handleBookingSubmit(event) {
 
     try {
         const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fields
-            })
+            method, headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields })
         });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error.message);
-        }
+        if (!response.ok) { const err = await response.json(); throw new Error(err.error.message); }
         hideBookingModal();
         loadScheduleForSelectedDate();
     } catch (error) {
@@ -355,7 +364,8 @@ async function fetchAndPopulateBookings() {
         const data = await response.json(); if (!response.ok) throw new Error(data.error.message);
 
         data.records.forEach(record => {
-            const period = record.fields.Period;
+            const startPeriod = record.fields.StartPeriod;
+            const endPeriod = record.fields.EndPeriod || startPeriod;
             const bookingReason = record.fields.BookingReason;
             const recordDate = new Date(record.fields.Date + 'T00:00:00');
             const dateStr = (recordDate.getMonth() + 1) + '/' + recordDate.getDate() + '/' + recordDate.getFullYear();
@@ -363,11 +373,16 @@ async function fetchAndPopulateBookings() {
             if (!dayType || !dayType.startsWith('Day')) return;
 
             const dayNumber = dayType.split(' ')[1];
-            const cellId = `D${dayNumber}-P${period}`;
-            const cell = document.getElementById(cellId);
 
-            if (cell) {
-                cell.className = `grid-cell D${dayNumber} p-1 rounded-lg sm:p-2 text-xs relative`;
+            for (let p = startPeriod; p <= endPeriod; p++) {
+                const cellId = `D${dayNumber}-P${p}`;
+                const cell = document.getElementById(cellId);
+                if (!cell) continue;
+
+                cell.classList.remove('available');
+                cell.onclick = null;
+
+                const isFirstCell = (p === startPeriod);
                 
                 const actionsHTML = `
                     <div class="booking-actions absolute top-1 right-1 flex items-center gap-1 sm:gap-2 z-10">
@@ -376,32 +391,45 @@ async function fetchAndPopulateBookings() {
                     </div>`;
 
                 if (bookingReason === "Closed") {
-                    const closedIcon = REASON_ICONS["Closed"] || 'do_not_disturb';
-                    cell.classList.add('bg-red-100', 'text-red-800');
-                    // THIS IS THE MODIFIED PART for vertical stacking
-                    cell.innerHTML = `
-                        ${actionsHTML}
-                        <div class="flex flex-col items-center justify-center h-full font-semibold text-red-700 uppercase tracking-tight sm:text-base gap-1">
-                            <span class="material-symbols-outlined" style="font-size: 24px;">${closedIcon}</span>
-                            <span class="text-[16px] leading-none">Closed</span>
-                        </div>`;
+                    cell.className = `grid-cell D${dayNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-red-100 text-red-800`;
+                    if (isFirstCell) {
+                        const closedIcon = REASON_ICONS["Closed"] || 'do_not_disturb';
+                        cell.innerHTML = `
+                            ${actionsHTML}
+                            <div class="flex flex-col items-center justify-center h-full font-semibold uppercase tracking-tight sm:text-base gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 24px;">${closedIcon}</span>
+                                <span class="text-[12px] leading-none">Closed</span>
+                            </div>`;
+                    } else {
+                        // NEW LOGIC: Add the continuation icon for "Closed" blocks
+                        cell.innerHTML = `
+                            <div class="flex items-center justify-center h-full">
+                                <span class="material-symbols-outlined text-red-300" style="font-size: 24px;">arrow_cool_down</span>
+                            </div>
+                        `;
+                    }
                 } else {
                     // This is a regular booking
-                    let iconName = REASON_ICONS[bookingReason];
-                    if (!iconName) {
-                        iconName = REASON_ICONS["Other"];
+                    cell.className = `grid-cell D${dayNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-blue-100 text-blue-800`;
+                    if (isFirstCell) {
+                        let iconName = REASON_ICONS[bookingReason] || REASON_ICONS["Other"];
+                        cell.innerHTML = `
+                            ${actionsHTML}
+                            <div class="pt-6 sm:pt-5">
+                                <strong class="font-semibold block text-xs tracking-tighter sm:text-sm leading-tight">${record.fields.TeacherName}</strong>
+                                <small class="flex items-center gap-1.5 text-blue-700 text-xs block mt-1 leading-tight">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">${iconName}</span>
+                                    <span>${bookingReason || ''}</span>
+                                </small>
+                            </div>`;
+                    } else {
+                        // NEW LOGIC: Add the continuation icon for regular booking blocks
+                        cell.innerHTML = `
+                            <div class="flex items-center justify-center h-full">
+                                <span class="material-symbols-outlined text-blue-300" style="font-size: 24px;">arrow_cool_down</span>
+                            </div>
+                        `;
                     }
-                    
-                    cell.classList.add('bg-blue-100', 'text-blue-800', 'border-b');
-                    cell.innerHTML = `
-                        ${actionsHTML}
-                        <div class="pt-6 sm:pt-5">
-                            <strong class="font-semibold block text-xs tracking-tighter sm:text-sm leading-tight">${record.fields.TeacherName}</strong>
-                            <small class="flex items-center gap-1.5 text-blue-700 text-xs block mt-1 leading-tight">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">${iconName}</span>
-                                <span>${bookingReason || ''}</span>
-                            </small>
-                        </div>`;
                 }
 
                 // For mobile: mark current day cells
@@ -415,7 +443,6 @@ async function fetchAndPopulateBookings() {
                         cell.classList.add('current-day');
                     }
                 }
-                cell.onclick = null;
             }
         });
 
@@ -423,7 +450,6 @@ async function fetchAndPopulateBookings() {
         console.error("Error fetching bookings:", error);
     }
 }
-
 
 function resetGridToAvailable() {
     document.querySelectorAll('.grid-cell').forEach(cell => {
@@ -589,7 +615,7 @@ function updateDayInfo(dateString) {
         document.querySelector(`.grid-header.D${dayNumber}`).classList.add('current-day-header');
         
         const dayDate = new Date(dateString.replace(/-/g, '/'));
-        mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
+        mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
 
     } else {
         // This is NOT a school day
@@ -622,7 +648,7 @@ function drawGridStructure() {
     const headers = ['', 'Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
     headers.forEach((h, i) => {
         const header = document.createElement('div');
-        header.className = 'grid-header hidden sm:flex p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
+header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
         if (i > 0) header.classList.add(`D${i}`);
         const title = document.createElement('span');
         title.className = "text-xs sm:text-sm font-bold";
