@@ -36,12 +36,12 @@ const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRT
 const AIRTABLE_BANNER_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_BANNER_TABLE_NAME}`;
 
 // --- Element References ---
-const loginBtn = document.getElementById('login-btn'), logoutBtn = document.getElementById('logout-btn'), userInfo = document.getElementById('user-info'), userName = document.getElementById('user-name'), appContent = document.getElementById('app-content'), gridContainer = document.getElementById('schedule-grid'), infoBanner = document.getElementById('info-banner'), datePicker = document.getElementById('date-picker'), prevWeekBtn = document.getElementById('prev-week-btn'), nextWeekBtn = document.getElementById('next-week-btn'), bookingModal = document.getElementById('booking-modal'), bookingForm = document.getElementById('booking-form'), modalTitle = document.getElementById('modal-title'), cancelBookingBtn = document.getElementById('cancel-booking-btn'), otherReasonInput = document.getElementById('other-reason'), reasonOptionsContainer = document.getElementById('booking-reason-options');
+const loginBtn = document.getElementById('login-btn'), logoutBtn = document.getElementById('logout-btn'), userInfo = document.getElementById('user-info'), userName = document.getElementById('user-name'), appContent = document.getElementById('app-content'), gridContainer = document.getElementById('schedule-grid'), infoBanner = document.getElementById('info-banner'), datePicker = document.getElementById('date-picker'), prevWeekBtn = document.getElementById('prev-week-btn'), nextWeekBtn = document.getElementById('next-week-btn'), bookingModal = document.getElementById('booking-modal'), bookingForm = document.getElementById('booking-form'), modalTitle = document.getElementById('modal-title'), cancelBookingBtn = document.getElementById('cancel-booking-btn'), deleteBookingBtn = document.getElementById('delete-booking-btn'), otherReasonInput = document.getElementById('other-reason'), reasonOptionsContainer = document.getElementById('booking-reason-options');
 // Admin Elements
 const alertBanner = document.getElementById('alert-banner'), adminBtn = document.getElementById('admin-btn'), adminModal = document.getElementById('admin-modal'), adminForm = document.getElementById('admin-form'), cancelAdminBtn = document.getElementById('cancel-admin-btn'), deleteBannerBtn = document.getElementById('delete-banner-btn');
 // Mobile Elements
 const noCurrentDayMobile = document.getElementById('no-current-day-mobile'), mobileCurrentDayInfo = document.getElementById('mobile-current-day-info'), mobilePrevDay = document.getElementById('mobile-prev-day'), mobileNextDay = document.getElementById('mobile-next-day');
-const mobileDayInfo = document.getElementById('mobile-day-info');
+const mobileDayInfo = document.getElementById('mobile-day-info'); cancelDeleteBtn = document.getElementById('cancel-delete-btn'), confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 
 let currentWeekDates = [], appInitialized = false, activeBannerRecordId = null;
 
@@ -107,6 +107,9 @@ function initializeApp() {
     cancelAdminBtn.addEventListener('click', () => adminModal.classList.add('hidden'));
     adminForm.addEventListener('submit', handleBannerSubmit);
     deleteBannerBtn.addEventListener('click', deleteBanner);
+    deleteBookingBtn.addEventListener('click', handleDeleteFromModal);
+    cancelDeleteBtn.addEventListener('click', hideConfirmDeleteModal);
+    confirmDeleteBtn.addEventListener('click', executeDelete);
 }
 
 // --- Admin Banner Logic ---
@@ -221,19 +224,24 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
     otherReasonInput.style.display = 'none';
     document.querySelector('input[name="bookingReason"][value="Book Exchange"]').checked = true;
 
-    const displayDate = new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', { dateStyle: 'full' });
+    // THIS IS THE FIX: Explicitly hide the start period container.
+    document.getElementById('start-period-container').classList.add('hidden');
+    deleteBookingBtn.classList.add('hidden');
+
+    const displayDate = new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
+        dateStyle: 'full'
+    });
     modalTitle.innerHTML = `
         <span class="material-symbols-outlined align-middle text-blue-600">calendar_month</span>
         ${displayDate}<br>
         <span class="material-symbols-outlined align-middle text-blue-600">schedule</span>
         Starting Period ${startPeriod}
-    `;
+        `;
     
-    // --- NEW LOGIC for End Period Dropdown ---
+    // Logic to populate the End Period dropdown
     const endPeriodSelect = document.getElementById('end-period');
     endPeriodSelect.innerHTML = ''; // Clear previous options
 
-    // Find all consecutive available periods
     for (let p = parseInt(startPeriod); p <= 10; p++) {
         const cellId = `D${dayNumber}-P${p}`;
         const cell = document.getElementById(cellId);
@@ -244,7 +252,6 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
             option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
             endPeriodSelect.appendChild(option);
         } else {
-            // Stop if we hit a booked slot or the end of the day
             break; 
         }
     }
@@ -254,25 +261,26 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
     bookingForm.dataset.date = dateString;
     bookingModal.classList.remove('hidden');
     bookingModal.classList.add('flex');
+    document.getElementById('teacher-name').focus();
 }
 
 async function showEditModal(recordId) {
     try {
         const fetchURL = `${AIRTABLE_API_URL}/${recordId}`;
-        const response = await fetch(fetchURL, {
-            headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-            }
-        });
+        const response = await fetch(fetchURL, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
         if (!response.ok) throw new Error('Failed to fetch booking details.');
         const record = await response.json();
-
+        
         bookingForm.reset();
         bookingForm.dataset.recordId = recordId;
-
-        modalTitle.textContent = `Edit Booking - Period ${record.fields.Period}`;
+        
+         modalTitle.innerHTML = `
+            <span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span>
+            Edit Booking`;
         bookingForm.querySelector('.book').textContent = 'Update Booking';
 
+        deleteBookingBtn.classList.remove('hidden');
+        
         document.getElementById('teacher-name').value = record.fields.TeacherName || '';
         const reason = record.fields.BookingReason;
         const isPredefinedReason = BOOKING_REASONS.includes(reason);
@@ -285,10 +293,56 @@ async function showEditModal(recordId) {
             otherReasonInput.value = reason || '';
             otherReasonInput.style.display = 'block';
         }
+
+        // --- NEW LOGIC for BOTH dropdowns ---
+        document.getElementById('start-period-container').classList.remove('hidden');
+        const startPeriodSelect = document.getElementById('start-period');
+        const endPeriodSelect = document.getElementById('end-period');
+        
+        const currentStart = record.fields.StartPeriod;
+        const currentEnd = record.fields.EndPeriod || currentStart;
+
+        const recordDate = new Date(record.fields.Date + 'T00:00:00');
+        const dateStr = (recordDate.getMonth() + 1) + '/' + recordDate.getDate() + '/' + recordDate.getFullYear();
+        const dayType = SCHOOL_CALENDAR[dateStr];
+        if (!dayType) throw new Error("Could not determine day for booking.");
+        const dayNumber = dayType.split(' ')[1];
+
+        // Find all available slots around the current booking
+        const availableSlots = [];
+        for (let p = 1; p <= 10; p++) {
+            const cell = document.getElementById(`D${dayNumber}-P${p}`);
+            if (cell && (cell.classList.contains('available') || (p >= currentStart && p <= currentEnd))) {
+                availableSlots.push(p);
+            }
+        }
+
+        // Populate the Start Period dropdown
+        startPeriodSelect.innerHTML = '';
+        availableSlots.forEach(p => {
+            // A start period can only be chosen if it's followed by a consecutive available slot
+            if (availableSlots.includes(p)) {
+                const option = document.createElement('option');
+                option.value = p;
+                option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+                startPeriodSelect.appendChild(option);
+            }
+        });
+        startPeriodSelect.value = currentStart;
+
+        // Populate the End Period dropdown based on the start period
+        updateEndPeriodOptions(dayNumber, currentStart, availableSlots);
+        endPeriodSelect.value = currentEnd;
+
+        // Add event listener to update End Period when Start Period changes
+        startPeriodSelect.onchange = () => {
+            updateEndPeriodOptions(dayNumber, parseInt(startPeriodSelect.value), availableSlots);
+        };
+        
         bookingModal.classList.remove('hidden');
         bookingModal.classList.add('flex');
     } catch (error) {
-        alert('Could not load booking for editing. Please try again.');
+        alert('Could not load booking for editing.');
         console.error(error);
     }
 }
@@ -298,26 +352,48 @@ function hideBookingModal() {
     bookingModal.classList.remove('flex');
 }
 
+function updateEndPeriodOptions(dayNumber, selectedStart, availableSlots) {
+    const endPeriodSelect = document.getElementById('end-period');
+    endPeriodSelect.innerHTML = '';
+
+    for (let p = selectedStart; p <= 10; p++) {
+        if (availableSlots.includes(p)) {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+            endPeriodSelect.appendChild(option);
+        } else {
+            // If we hit a slot that wasn't available, we can't go further
+            break; 
+        }
+    }
+}
+
 async function handleBookingSubmit(event) {
     event.preventDefault();
     const teacherName = document.getElementById('teacher-name').value.trim();
-    const endPeriod = document.getElementById('end-period').value; // Get the end period
     const selectedReason = document.querySelector('input[name="bookingReason"]:checked').value;
     const bookingReason = selectedReason === 'Other' ? otherReasonInput.value.trim() : selectedReason;
-
-    if (!teacherName || !bookingReason || !endPeriod) {
-        alert('Please fill out all fields.');
-        return;
-    }
-
+    
     const recordId = bookingForm.dataset.recordId;
     const isEditing = !!recordId;
 
     const fields = { "TeacherName": teacherName, "BookingReason": bookingReason };
-    if (!isEditing) {
+    
+    if (isEditing) {
+        // When editing, get start and end periods from the dropdowns
+        const startPeriod = document.getElementById('start-period').value;
+        const endPeriod = document.getElementById('end-period').value;
+        if (!startPeriod || !endPeriod) { alert('Please select a start and end period.'); return; }
+        fields.StartPeriod = parseInt(startPeriod);
+        fields.EndPeriod = parseInt(endPeriod);
+    } else {
+        // When creating a new booking
+        const endPeriod = document.getElementById('end-period').value;
+        if (!endPeriod) { alert('Please select an end period.'); return; }
         fields.Date = bookingForm.dataset.date;
         fields.StartPeriod = parseInt(bookingForm.dataset.startPeriod);
-        fields.EndPeriod = parseInt(endPeriod); // Add EndPeriod to the data
+        fields.EndPeriod = parseInt(endPeriod);
     }
 
     const url = isEditing ? `${AIRTABLE_API_URL}/${recordId}` : AIRTABLE_API_URL;
@@ -325,7 +401,8 @@ async function handleBookingSubmit(event) {
 
     try {
         const response = await fetch(url, {
-            method, headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}`, 'Content-Type': 'application/json' },
+            method: method,
+            headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ fields })
         });
         if (!response.ok) { const err = await response.json(); throw new Error(err.error.message); }
@@ -338,15 +415,12 @@ async function handleBookingSubmit(event) {
 }
 
 async function cancelBooking(recordId) {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
     try {
         await fetch(`${AIRTABLE_API_URL}/${recordId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-            }
+            headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
         });
-        loadScheduleForSelectedDate();
+        loadScheduleForSelectedDate(); // Refresh the grid
     } catch (error) {
         alert('Could not cancel booking.');
         console.error(error);
@@ -390,7 +464,7 @@ async function fetchAndPopulateBookings() {
                 const actionsHTML = `
                     <div class="booking-actions absolute top-1 right-1 flex items-center gap-1 sm:gap-2 z-10">
                         <span class="material-symbols-outlined text-gray-600 hover:text-gray-50 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 20px;" title="Edit Booking" onclick="showEditModal('${record.id}')">edit</span>
-                        <span class="material-symbols-outlined text-gray-600 hover:text-gray-50 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 20px;" title="Cancel Booking" onclick="cancelBooking('${record.id}')">delete</span>
+                        <span class="material-symbols-outlined text-gray-600 hover:text-gray-50 cursor-pointer transition-transform transform hover:scale-110" style="font-size: 20px;" title="Cancel Booking" onclick="showConfirmDeleteModal('${record.id}')">delete</span>
                     </div>`;
 
                 if (bookingReason === "Closed") {
@@ -689,4 +763,38 @@ header.className = 'grid-header hidden sm:block p-2 sm:p-3 text-center font-semi
             gridContainer.appendChild(separator);
         }
     }
+}
+
+function handleDeleteFromModal() {
+    const recordId = bookingForm.dataset.recordId;
+    if (recordId) {
+        hideBookingModal(); // Hide the edit modal
+        showConfirmDeleteModal(recordId); // Show the new confirmation modal
+    }
+}
+
+// This function opens the confirmation modal and stores the ID of the booking to be deleted.
+function showConfirmDeleteModal(recordId) {
+    const modal = document.getElementById('confirm-delete-modal');
+    modal.dataset.recordId = recordId; // Store the ID on the modal itself
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// This function simply hides the modal.
+function hideConfirmDeleteModal() {
+    const modal = document.getElementById('confirm-delete-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    delete modal.dataset.recordId; // Clean up the stored ID
+}
+
+// This function runs when the user clicks "Yes, Cancel Booking".
+function executeDelete() {
+    const modal = document.getElementById('confirm-delete-modal');
+    const recordId = modal.dataset.recordId;
+    if (recordId) {
+        cancelBooking(recordId); // Call the original deletion logic
+    }
+    hideConfirmDeleteModal(); // Close the modal
 }
