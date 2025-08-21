@@ -102,17 +102,28 @@
         font-size: 0.775rem; /* Small text, like Tailwind's text-sm */
         color: #6b7280;     /* Muted gray color, like Tailwind's gray-500 */
     }
+
+    .school-name {
+        letter-spacing: 1.8px;
+        font-size: 0.75em;
+        line-height: 0.55rem;
+        padding-top: 10px;
+    }
+
+    }
     
     </style>
 </head>
 <body class="bg-gray-50 font-sans p-3 sm:p-6 md:p-10">
     <div class="max-w-7xl mx-auto">
 
+        <p class="school-name uppercase sm:hidden text-center text-sm text-gray-500">Jack Miner Public School</p>
+
         <header class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6">
             <!-- This new div groups the logo and title together -->
             <div class="flex items-center gap-3 sm:gap-4">
                 <img src="logo.png" alt="Jack Miner Nighthawks Logo" class="hidden sm:block h-12 sm:h-16 w-auto">
-                <h1 class="text-2xl font-bold tracking-tighter sm:text-3xl text-gray-800 mb-0">Learning Commons Booking</h1>
+                <h1 class="text-2xl font-bold tracking-tighter mb-2 sm:text-3xl text-gray-800 mb-0">Learning Commons Booking</h1>
             </div>
 
             <div id="auth-container">
@@ -186,9 +197,11 @@
         </div>
     </div>
     
+    <!--
     <footer class="site-footer">
         <p class="tracking-tight">jmpslibrary.github.io/schedule</p>
     </footer>
+    -->
 
     <!-- Mobile-optimized Booking Modal -->
     <div id="booking-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4 sm:p-0">

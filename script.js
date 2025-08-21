@@ -622,7 +622,7 @@ function drawGridStructure() {
     const headers = ['', 'Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
     headers.forEach((h, i) => {
         const header = document.createElement('div');
-        header.className = 'grid-header p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
+        header.className = 'grid-header hidden sm:flex p-2 sm:p-3 text-center font-semibold text-gray-700 bg-gray-100 border-b-2 border-gray-200 rounded-t-lg text-xs sm:text-sm';
         if (i > 0) header.classList.add(`D${i}`);
         const title = document.createElement('span');
         title.className = "text-xs sm:text-sm font-bold";
