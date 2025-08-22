@@ -37,6 +37,7 @@ const AIRTABLE_BANNER_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${A
 
 // --- Element References ---
 const loginBtn = document.getElementById('login-btn'), logoutBtn = document.getElementById('logout-btn'), userInfo = document.getElementById('user-info'), userName = document.getElementById('user-name'), appContent = document.getElementById('app-content'), gridContainer = document.getElementById('schedule-grid'), infoBanner = document.getElementById('info-banner'), datePicker = document.getElementById('date-picker'), prevWeekBtn = document.getElementById('prev-week-btn'), nextWeekBtn = document.getElementById('next-week-btn'), bookingModal = document.getElementById('booking-modal'), bookingForm = document.getElementById('booking-form'), modalTitle = document.getElementById('modal-title'), cancelBookingBtn = document.getElementById('cancel-booking-btn'), deleteBookingBtn = document.getElementById('delete-booking-btn'), otherReasonInput = document.getElementById('other-reason'), reasonOptionsContainer = document.getElementById('booking-reason-options');
+const todayBtn = document.getElementById('today-btn');
 // Admin Elements
 const alertBanner = document.getElementById('alert-banner'), adminBtn = document.getElementById('admin-btn'), adminModal = document.getElementById('admin-modal'), adminForm = document.getElementById('admin-form'), cancelAdminBtn = document.getElementById('cancel-admin-btn'), deleteBannerBtn = document.getElementById('delete-banner-btn');
 // Mobile Elements
@@ -92,6 +93,7 @@ function initializeApp() {
     datePicker.value = new Date().toISOString().split('T')[0];
     loadScheduleForSelectedDate();
     datePicker.addEventListener('change', loadScheduleForSelectedDate);
+    todayBtn.addEventListener('click', jumpToToday);
     // Desktop Nav
     prevWeekBtn.addEventListener('click', () => navigateWeeks('prev'));
     nextWeekBtn.addEventListener('click', () => navigateWeeks('next'));
@@ -266,84 +268,114 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
 
 async function showEditModal(recordId) {
     try {
-        const fetchURL = `${AIRTABLE_API_URL}/${recordId}`;
-        const response = await fetch(fetchURL, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
+        // Step 1: Fetch the specific record we are editing
+        let response = await fetch(`${AIRTABLE_API_URL}/${recordId}`, { 
+            headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } 
+        });
         if (!response.ok) throw new Error('Failed to fetch booking details.');
-        const record = await response.json();
+        const recordToEdit = await response.json();
         
+        const { 
+            Date: recordDateStr, 
+            StartPeriod: currentStart, 
+            EndPeriod: currentEnd = currentStart,
+            TeacherName: teacherName = '',
+            BookingReason: bookingReason = 'Book Exchange'
+        } = recordToEdit.fields;
+
+        // Step 2: Fetch ALL records for that same day to check for conflicts
+        const filterFormula = `IS_SAME({Date}, '${recordDateStr}', 'day')`;
+        const fetchURL = `${AIRTABLE_API_URL}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+        response = await fetch(fetchURL, { 
+            headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } 
+        });
+        if (!response.ok) throw new Error('Failed to fetch day\'s bookings.');
+        const dayBookings = await response.json();
+
+        // Step 3: Create an availability map for all 10 periods
+        const periodAvailability = {};
+        for (let p = 1; p <= 10; p++) periodAvailability[p] = true;
+
+        dayBookings.records.forEach(booking => {
+            if (booking.id === recordId) return; // Skip the booking we are currently editing
+            const start = booking.fields.StartPeriod;
+            const end = booking.fields.EndPeriod || start;
+            for (let p = start; p <= end; p++) {
+                periodAvailability[p] = false;
+            }
+        });
+
+        // Step 4: Find the boundaries of the continuous available block around our booking
+        let earliestStart = currentStart;
+        while (earliestStart > 1 && periodAvailability[earliestStart - 1]) {
+            earliestStart--;
+        }
+        let latestEnd = currentEnd;
+        while (latestEnd < 10 && periodAvailability[latestEnd + 1]) {
+            latestEnd++;
+        }
+
+        // Step 5: Set up the modal
         bookingForm.reset();
         bookingForm.dataset.recordId = recordId;
         
-         modalTitle.innerHTML = `
-            <span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span>
-            Edit Booking`;
+        modalTitle.innerHTML = `<span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span> Edit Booking`;
         bookingForm.querySelector('.book').textContent = 'Update Booking';
-
         deleteBookingBtn.classList.remove('hidden');
-        
-        document.getElementById('teacher-name').value = record.fields.TeacherName || '';
-        const reason = record.fields.BookingReason;
-        const isPredefinedReason = BOOKING_REASONS.includes(reason);
-
-        if (isPredefinedReason) {
-            document.querySelector(`input[name="bookingReason"][value="${reason}"]`).checked = true;
-            otherReasonInput.style.display = 'none';
-        } else {
-            document.querySelector('input[name="bookingReason"][value="Other"]').checked = true;
-            otherReasonInput.value = reason || '';
-            otherReasonInput.style.display = 'block';
-        }
-
-        // --- NEW LOGIC for BOTH dropdowns ---
         document.getElementById('start-period-container').classList.remove('hidden');
-        const startPeriodSelect = document.getElementById('start-period');
-        const endPeriodSelect = document.getElementById('end-period');
         
-        const currentStart = record.fields.StartPeriod;
-        const currentEnd = record.fields.EndPeriod || currentStart;
-
-        const recordDate = new Date(record.fields.Date + 'T00:00:00');
-        const dateStr = (recordDate.getMonth() + 1) + '/' + recordDate.getDate() + '/' + recordDate.getFullYear();
-        const dayType = SCHOOL_CALENDAR[dateStr];
-        if (!dayType) throw new Error("Could not determine day for booking.");
-        const dayNumber = dayType.split(' ')[1];
-
-        // Find all available slots around the current booking
-        const availableSlots = [];
-        for (let p = 1; p <= 10; p++) {
-            const cell = document.getElementById(`D${dayNumber}-P${p}`);
-            if (cell && (cell.classList.contains('available') || (p >= currentStart && p <= currentEnd))) {
-                availableSlots.push(p);
+        // Populate form fields
+        document.getElementById('teacher-name').value = teacherName;
+        
+        // Handle booking reason selection
+        const reasonRadio = document.querySelector(`input[name="bookingReason"][value="${bookingReason}"]`);
+        if (reasonRadio) {
+            reasonRadio.checked = true;
+            if (bookingReason === 'Other') {
+                otherReasonInput.style.display = 'block';
+                otherReasonInput.required = true;
+                otherReasonInput.value = bookingReason;
+            }
+        } else {
+            // If the reason doesn't match any predefined option, select "Other"
+            const otherRadio = document.querySelector(`input[name="bookingReason"][value="Other"]`);
+            if (otherRadio) {
+                otherRadio.checked = true;
+                otherReasonInput.style.display = 'block';
+                otherReasonInput.required = true;
+                otherReasonInput.value = bookingReason;
             }
         }
 
-        // Populate the Start Period dropdown
+        const startPeriodSelect = document.getElementById('start-period');
+        
+        // Populate Start Period dropdown
         startPeriodSelect.innerHTML = '';
-        availableSlots.forEach(p => {
-            // A start period can only be chosen if it's followed by a consecutive available slot
-            if (availableSlots.includes(p)) {
-                const option = document.createElement('option');
-                option.value = p;
-                option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
-                startPeriodSelect.appendChild(option);
-            }
-        });
+        for (let p = earliestStart; p <= latestEnd; p++) {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+            startPeriodSelect.appendChild(option);
+        }
         startPeriodSelect.value = currentStart;
 
-        // Populate the End Period dropdown based on the start period
-        updateEndPeriodOptions(dayNumber, currentStart, availableSlots);
-        endPeriodSelect.value = currentEnd;
+        // Populate End Period dropdown based on the start
+        updateEndPeriodOptionsForEdit(currentStart, latestEnd);
+        document.getElementById('end-period').value = currentEnd;
 
-        // Add event listener to update End Period when Start Period changes
+        // Update End Period options when Start Period changes
         startPeriodSelect.onchange = () => {
-            updateEndPeriodOptions(dayNumber, parseInt(startPeriodSelect.value), availableSlots);
+            updateEndPeriodOptionsForEdit(parseInt(startPeriodSelect.value), latestEnd);
         };
         
         bookingModal.classList.remove('hidden');
         bookingModal.classList.add('flex');
+        document.getElementById('teacher-name').focus();
+        
     } catch (error) {
-        alert('Could not load booking for editing.');
+        alert('Could not load booking for editing. The schedule might have changed.');
         console.error(error);
+        loadScheduleForSelectedDate(); // Refresh schedule on error
     }
 }
 
@@ -352,19 +384,53 @@ function hideBookingModal() {
     bookingModal.classList.remove('flex');
 }
 
+// New helper function for updating end period options during editing
+function updateEndPeriodOptionsForEdit(selectedStart, latestEnd) {
+    const endPeriodSelect = document.getElementById('end-period');
+    const currentEndValue = endPeriodSelect.value; // Store current selection
+    endPeriodSelect.innerHTML = '';
+
+    for (let p = selectedStart; p <= latestEnd; p++) {
+        const option = document.createElement('option');
+        option.value = p;
+        option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+        endPeriodSelect.appendChild(option);
+    }
+    
+    // Restore selection if it's still valid, otherwise select the start period
+    if (currentEndValue && parseInt(currentEndValue) >= selectedStart && parseInt(currentEndValue) <= latestEnd) {
+        endPeriodSelect.value = currentEndValue;
+    } else {
+        endPeriodSelect.value = selectedStart;
+    }
+}
+
+// Updated version of the existing updateEndPeriodOptions function for new bookings
 function updateEndPeriodOptions(dayNumber, selectedStart, availableSlots) {
     const endPeriodSelect = document.getElementById('end-period');
     endPeriodSelect.innerHTML = '';
 
     for (let p = selectedStart; p <= 10; p++) {
-        if (availableSlots.includes(p)) {
+        if (availableSlots && availableSlots.includes(p)) {
             const option = document.createElement('option');
             option.value = p;
             option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
             endPeriodSelect.appendChild(option);
+        } else if (!availableSlots) {
+            // If no availableSlots array provided, check the cell directly
+            const cellId = `D${dayNumber}-P${p}`;
+            const cell = document.getElementById(cellId);
+            
+            if (cell && cell.classList.contains('available')) {
+                const option = document.createElement('option');
+                option.value = p;
+                option.textContent = `Period ${p} (${PERIOD_TIMES[p-1]})`;
+                endPeriodSelect.appendChild(option);
+            } else {
+                break; 
+            }
         } else {
-            // If we hit a slot that wasn't available, we can't go further
-            break; 
+            break;
         }
     }
 }
@@ -429,10 +495,17 @@ async function cancelBooking(recordId) {
 
 // --- Grid and Date Logic ---
 
+// Updated fetchAndPopulateBookings function - removes the resetGridToAvailable call
 async function fetchAndPopulateBookings() {
-    resetGridToAvailable();
+    // REMOVED: resetGridToAvailable(); // This was causing the flicker
+    
     const dateFilters = currentWeekDates.filter(d => d).map(d => `IS_SAME({Date}, '${d}', 'day')`);
-    if (dateFilters.length === 0) return;
+    if (dateFilters.length === 0) {
+        // If no valid dates, we still need to reset the grid
+        resetGridToAvailable();
+        return;
+    }
+    
     const filterFormula = `OR(${dateFilters.join(',')})`;
     const fetchURL = `${AIRTABLE_API_URL}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
@@ -441,6 +514,10 @@ async function fetchAndPopulateBookings() {
         const data = await response.json(); 
         if (!response.ok) throw new Error(data.error.message);
 
+        // NEW: Reset grid with booking data in mind
+        resetGridToAvailableWithBookings(data.records);
+
+        // Process bookings and update cells
         data.records.forEach(record => {
             const startPeriod = record.fields.StartPeriod;
             const endPeriod = record.fields.EndPeriod || startPeriod;
@@ -459,7 +536,8 @@ async function fetchAndPopulateBookings() {
                 const cell = document.getElementById(cellId);
                 if (!cell) continue;
 
-                cell.classList.remove('available');
+                // Remove available classes and click handler
+                cell.classList.remove('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
                 cell.onclick = null;
 
                 const isFirstCell = (p === startPeriod);
@@ -521,7 +599,71 @@ async function fetchAndPopulateBookings() {
 
     } catch (error) {
         console.error("Error fetching bookings:", error);
+        // On error, fall back to the original reset behavior
+        resetGridToAvailable();
     }
+}
+
+// NEW: Smart grid reset function that considers existing bookings
+function resetGridToAvailableWithBookings(bookings) {
+    const selectedDate = new Date(datePicker.value + 'T12:00:00');
+    const selectedDateString = selectedDate.toLocaleDateString();
+
+    // Create a map of booked periods for quick lookup
+    const bookedPeriods = new Set();
+    bookings.forEach(record => {
+        const startPeriod = record.fields.StartPeriod;
+        const endPeriod = record.fields.EndPeriod || startPeriod;
+        const recordDate = new Date(record.fields.Date + 'T00:00:00');
+        
+        // Find which column this date belongs to
+        const columnIndex = currentWeekDates.findIndex(d => d === new Date(record.fields.Date).toISOString().split('T')[0]);
+        if (columnIndex === -1) return;
+        
+        const columnNumber = columnIndex + 1;
+        
+        for (let p = startPeriod; p <= endPeriod; p++) {
+            bookedPeriods.add(`D${columnNumber}-P${p}`);
+        }
+    });
+
+    document.querySelectorAll('.grid-cell').forEach(cell => {
+        const [_, day, period] = cell.id.match(/D(\d+)-P(\d+)/);
+        
+        // Base classes, ensuring the structural D{day} class is always present.
+        cell.className = `grid-cell D${day} p-1 sm:p-2 text-center min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs border-b border-solid border-gray-200 sm:text-sm`;
+
+        const dateStringForThisCell = currentWeekDates[day - 1];
+
+        if (dateStringForThisCell) {
+            const dateForThisCell = new Date(dateStringForThisCell + 'T12:00:00');
+            const mdyFormat = (dateForThisCell.getMonth() + 1) + '/' + dateForThisCell.getDate() + '/' + dateForThisCell.getFullYear();
+            const dayType = SCHOOL_CALENDAR[mdyFormat];
+
+            if (dayType && dayType.startsWith("Day")) {
+                // Only set as available if it's not in the booked periods
+                if (!bookedPeriods.has(cell.id)) {
+                    cell.classList.add('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
+                    cell.innerHTML = 'Available';
+                    cell.onclick = () => showBookingModal(day, period, dateStringForThisCell);
+                }
+                // If it is booked, leave it as-is (will be updated by the booking loop)
+            } else {
+                cell.classList.add('bg-gray-100', 'text-gray-500');
+                cell.innerHTML = dayType || '';
+                cell.onclick = null;
+            }
+
+            if (dateForThisCell.toLocaleDateString() === selectedDateString) {
+                cell.classList.add('current-day');
+            }
+
+        } else {
+            cell.classList.add('bg-gray-100');
+            cell.innerHTML = '';
+            cell.onclick = null;
+        }
+    });
 }
 
 function resetGridToAvailable() {
@@ -623,12 +765,50 @@ function navigateWeeks(direction) {
 }
 
 
+// New function to jump to today's date
+function jumpToToday() {
+    const today = new Date();
+    datePicker.value = today.toISOString().split('T')[0];
+    loadScheduleForSelectedDate();
+}
+
+// New function to check if current date is in today's week
+function isCurrentWeekToday() {
+    const today = new Date();
+    const selectedDate = new Date(datePicker.value + 'T12:00:00');
+    
+    // Get the start of the week (Monday) for both dates
+    const getMonday = (date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+        return new Date(d.setDate(diff));
+    };
+    
+    const todayMonday = getMonday(today);
+    const selectedMonday = getMonday(selectedDate);
+    
+    // Compare if they're in the same week
+    return todayMonday.getTime() === selectedMonday.getTime();
+}
+
+// Updated updateDayInfo function - add this logic to show/hide the Today button
+function updateTodayButtonVisibility() {
+    if (isCurrentWeekToday()) {
+        todayBtn.classList.add('hidden');
+    } else {
+        todayBtn.classList.remove('hidden');
+    }
+}
+
+// Modified loadScheduleForSelectedDate function - add the Today button visibility update
 function loadScheduleForSelectedDate() {
     const selectedDate = new Date(datePicker.value);
     const timezoneOffset = selectedDate.getTimezoneOffset() * 60000;
     const adjustedDate = new Date(selectedDate.getTime() + timezoneOffset);
     const mdyFormat = (adjustedDate.getMonth() + 1) + '/' + adjustedDate.getDate() + '/' + adjustedDate.getFullYear();
     updateDayInfo(mdyFormat);
+    updateTodayButtonVisibility(); // NEW: Update Today button visibility
     fetchAndPopulateBookings();
 }
 
@@ -817,3 +997,18 @@ function executeDelete() {
     }
     hideConfirmDeleteModal(); // Close the modal
 }
+
+const OriginalDate = Date;
+Date = class extends OriginalDate {
+    constructor(...args) {
+        if (args.length === 0) {
+            // When new Date() is called with no arguments, return our fake date
+            return new OriginalDate('2025-09-02T12:00:00');
+        }
+        return new OriginalDate(...args);
+    }
+    
+    static now() {
+        return new OriginalDate('2025-09-02T12:00:00').getTime();
+    }
+};
