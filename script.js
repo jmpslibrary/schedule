@@ -618,24 +618,26 @@ async function fetchAndPopulateBookings() {
 
             bookingsSnapshot.forEach(doc => {
                 const bookingData = doc.data();
-                // THIS IS THE FIX:
-                // Create a record object that includes the 'isRecurring' flag
-                // based on whether the SeriesID field exists.
                 const record = {
                     id: doc.id,
                     fields: bookingData,
-                    isRecurring: !!bookingData.SeriesID // Convert truthy/falsy to a true boolean
+                    isRecurring: !!bookingData.SeriesID
                 };
                 allBookingsForWeek.push(record);
             });
         }
         
+        // Redraw the grid content (while it's still invisible)
         resetGridToAvailable(allBookingsForWeek);
         renderBookings(allBookingsForWeek);
 
     } catch (error) {
         console.error("Error fetching and populating bookings:", error);
-        resetGridToAvailable(); 
+        resetGridToAvailable(); // Show an empty grid on error
+    } finally {
+        // ALWAYS remove the loading class to make the grid visible again,
+        // starting the fade-in effect.
+        gridContainer.classList.remove('loading');
     }
 }
 
@@ -902,19 +904,18 @@ function updateTodayButtonVisibility() {
     todayBtn.classList.toggle('hidden', !shouldShow);
 }
 
-// Modified loadScheduleForSelectedDate function - add the Today button visibility update
 function loadScheduleForSelectedDate() {
+    // Add the loading class to start the fade-out effect immediately
+    gridContainer.classList.add('loading');
+
     const selectedDate = new Date(datePicker.value);
     const timezoneOffset = selectedDate.getTimezoneOffset() * 60000;
     const adjustedDate = new Date(selectedDate.getTime() + timezoneOffset);
-    const mdyFormat =
-        (adjustedDate.getMonth() + 1) + '/' +
-        adjustedDate.getDate() + '/' +
-        adjustedDate.getFullYear();
+    const mdyFormat = (adjustedDate.getMonth() + 1) + '/' + adjustedDate.getDate() + '/' + adjustedDate.getFullYear();
 
-    updateDayInfo(mdyFormat);          // updates headers, labels, mobile title, etc.
-    updateTodayButtonVisibility();     // NEW: keep the Today button logic in sync
-    fetchAndPopulateBookings();        // draws available + existing bookings
+    updateDayInfo(mdyFormat);
+    updateTodayButtonVisibility();
+    fetchAndPopulateBookings();
 }
 
 function getWeekDateInfo(selectedDateString) {
