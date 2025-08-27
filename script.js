@@ -772,6 +772,11 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
 }
 
 function resetGridToAvailable() {
+    // Clear previous highlights HERE instead of in updateDayInfo
+    document.querySelectorAll('.current-day, .current-day-header').forEach(el => {
+        el.classList.remove('current-day', 'current-day-header');
+    });
+
     const selectedDate = new Date(datePicker.value + 'T12:00:00');
     const selectedDateString = selectedDate.toLocaleDateString();
 
@@ -804,8 +809,26 @@ function resetGridToAvailable() {
             cell.onclick = null;
         }
     });
-}
 
+    // Add header highlighting here as well
+    const selectedDateObj = new Date(datePicker.value + 'T12:00:00');
+    const selectedDayOfWeek = selectedDateObj.getDay();
+    
+    // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
+    let columnIndex;
+    if (selectedDayOfWeek === 0) { // Sunday
+        columnIndex = -1; // Invalid for school days
+    } else {
+        columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
+    }
+    
+    if (columnIndex >= 0 && columnIndex < 5) {
+        const headerElement = document.querySelector(`.grid-header.D${columnIndex + 1}`);
+        if (headerElement) {
+            headerElement.classList.add('current-day-header');
+        }
+    }
+}
 
 // Day-by-day nav (used by mobile arrows)
 function navigateDays(direction) {
@@ -943,10 +966,7 @@ function getWeekDateInfo(selectedDateString) {
 }
 
 function updateDayInfo(dateString) {
-    // Clear previous highlights
-    document.querySelectorAll('.current-day, .current-day-header').forEach(el => {
-        el.classList.remove('current-day', 'current-day-header');
-    });
+    // DON'T clear classes here - move this to resetGridToAvailable instead
     
     const weekDates = getWeekDateInfo(dateString);
     currentWeekDates = weekDates.map(d => d ? new Date(d).toISOString().split('T')[0] : null);
@@ -982,22 +1002,6 @@ function updateDayInfo(dateString) {
         infoBanner.classList.add('hidden');
         noCurrentDayMobile.classList.add('hidden');
         gridContainer.classList.remove('hidden');
-        
-        // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
-        let columnIndex;
-        if (selectedDayOfWeek === 0) { // Sunday
-            columnIndex = -1; // Invalid for school days
-        } else {
-            columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
-        }
-        
-        // FIXED: Add the header highlighting here as well
-        if (columnIndex >= 0 && columnIndex < 5) {
-            const headerElement = document.querySelector(`.grid-header.D${columnIndex + 1}`);
-            if (headerElement) {
-                headerElement.classList.add('current-day-header');
-            }
-        }
         
         const dayDate = new Date(dateString);
         mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
