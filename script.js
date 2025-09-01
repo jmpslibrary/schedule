@@ -8,6 +8,13 @@ const firebaseConfig = {
   appId: "1:797656215545:web:ac92e5f559dcd42b151728"
 };
 
+// --- EmailJS Configuration ---
+const EMAILJS_SERVICE_ID = 'service_1v4utl1';
+const EMAILJS_TEMPLATE_ID = 'template_kc36e1h'; // New booking template
+const EMAILJS_CANCEL_TEMPLATE_ID = 'template_5xy593p'; // New cancellation template
+const EMAILJS_PUBLIC_KEY = 'TiGzJLOUe-bDo0pD5';
+const ADMIN_RECIPIENT_EMAIL = 'taylchri4039@ddsb.ca'; // Your admin email
+
 // --- App Configuration ---
 const ALLOWED_DOMAIN = "ddsb.ca"; 
 const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"];
@@ -15,8 +22,7 @@ const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"];
 const PERIOD_TIMES = ["8:05 - 8:35", "8:35 - 9:05", "9:05 - 9:35", "9:50 - 10:20", "10:20 - 10:50", "11:50 - 12:20", "12:20 - 12:50", "12:50 - 1:20", "1:35 - 2:05", "2:05 - 2:35"];
 const BOOKING_REASONS = ["Book Exchange", "Partnering", "Presentation", "Closed", "Other"];
 const REASON_ICONS = { "Book Exchange": "book_2", "Partnering": "group", "Presentation": "co_present", "Closed": "event_busy", "Other": "calendar_check" };
-const SCHOOL_CALENDAR = { "8/29/2025": "PA Day", "9/1/2025": "Holiday", "9/2/2025": "Day 1", "9/3/2025": "Day 2", "9/4/2025": "Day 3", "9/5/2025": "Day 4", "9/8/2025": "Day 5", "9/9/2025": "Day 1", "9/10/2025": "Day 2", "9/11/2025": "Day 3", "9/12/2025": "Day 4", "9/15/2025": "Day 5", "9/16/2025": "Day 1", "9/17/2025": "Day 2", "9/18/2025": "Day 3", "9/19/2025": "Day 4", "9/22/2025": "Day 5", "9/23/2025": "Day 1", "9/24/2025": "Day 2", "9/25/2025": "Day 3", "9/26/2025": "Day 4", "9/29/2025": "Day 5", "9/30/2025": "Day 1", "10/1/2025": "Day 2", "10/2/2025": "Day 3", "10/3/2025": "Day 4", "10/6/2025": "Day 5", "10/7/2025": "Day 1", "10/8/2025": "Day 2", "10/9/2025": "Day 3", "10/10/2025": "Day 4", "10/13/2025": "Holiday", "10/14/2025": "Day 5", "10/15/2025": "Day 1", "10/16/2025": "Day 2", "10/17/2025": "Day 3", "10/20/2025": "Day 4", "10/21/2025": "Day 5", "10/22/2025": "Day 1", "10/23/2025": "Day 2", "10/24/2025": "PA Day", "10/27/2025": "Day 3", "10/28/2025": "Day 4", "10/29/2025": "Day 5", "10/30/2025": "Day 1", "10/31/2025": "Day 2", "11/3/2025": "Day 3", "11/4/2025": "Day 4", "11/5/2025": "Day 5", "11/6/2025": "Day 1", "11/7/2025": "Day 2", "11/10/2025": "Day 3", "11/11/2025": "Day 4", "11/12/2025": "Day 5", "11/13/2025": "Day 1", "11/14/2025": "PA Day", "11/17/2025": "Day 2", "11/18/2025": "Day 3", "11/19/2025": "Day 4", "11/20/2025": "Day 5", "11/21/2025": "Day 1", "11/24/2025": "Day 2", "11/25/2025": "Day 3", "11/26/2025": "Day 4", "11/27/2025": "Day 5", "11/28/2025": "Day 1", "12/1/2025": "Day 2", "12/2/2025": "Day 3", "12/3/2025": "Day 4", "12/4/2025": "Day 5", "12/5/2025": "Day 1", "12/8/2025": "Day 2", "12/9/2025": "Day 3", "12/10/2025": "Day 4", "12/11/2025": "Day 5", "12/12/2025": "Day 1", "12/15/2025": "Day 2", "12/16/2025": "Day 3", "12/17/2025": "Day 4", "12/18/2025": "Day 5", "12/19/2025": "Day 1", "12/22/2025": "Holiday", "12/23/2025": "Holiday", "12/24/2025": "Holiday", "12/25/2025": "Holiday", "12/26/2025": "Holiday", "12/29/2025": "Holiday", "12/30/2025": "Holiday", "12/31/2025": "Holiday", "1/1/2026": "Holiday", "1/2/2026": "Holiday", "1/5/2026": "Day 2", "1/6/2026": "Day 3", "1/7/2026": "Day 4", "1/8/2026": "Day 5", "1/9/2026": "Day 1", "1/12/2026": "Day 2", "1/13/2026": "Day 3", "1/14/2026": "Day 4", "1/15/2026": "Day 5", "1/16/2026": "Day 1", "1/19/2026": "Day 2", "1/20/2026": "Day 3", "1/21/2026": "Day 4", "1/22/2026": "Day 5", "1/23/2026": "Day 1", "1/26/2026": "Day 2", "1/27/2026": "Day 3", "1/28/2026": "Day 4", "1/29/2026": "Day 5", "1/30/2026": "PA Day", "2/2/2026": "Day 1", "2/3/2026": "Day 2", "2/4/2026": "Day 3", "2/5/2026": "Day 4", "2/6/2026": "Day 5", "2/9/2026": "Day 1", "2/10/2026": "Day 2", "2/11/2026": "Day 3", "2/12/2026": "Day 4", "2/13/2026": "Day 5", "2/16/2026": "Holiday", "2/17/2026": "Day 1", "2/18/2026": "Day 2", "2/19/2026": "Day 3", "2/20/2026": "Day 4", "2/23/2026": "Day 5", "2/24/2026": "Day 1", "2/25/2026": "Day 2", "2/26/2026": "Day 3", "2/27/2026": "Day 4", "3/2/2026": "Day 5", "3/3/2026": "Day 1", "3/4/2026": "Day 2", "3/5/2026": "Day 3", "3/6/2026": "Day 4", "3/9/2026": "Day 5", "3/10/2026": "Day 1", "3/11/2026": "Day 2", "3/12/2026": "Day 3", "3/13/2026": "Holiday", "3/16/2026": "Holiday", "3/17/2026": "Holiday", "3/18/2026": "Holiday", "3/19/2026": "Holiday", "3/20/2026": "Holiday", "3/23/2026": "Day 4", "3/24/2026": "Day 5", "3/25/2026": "Day 1", "3/26/2026": "Day 2", "3/27/2026": "Day 3", "3/30/2026": "Day 4", "3/31/2026": "Day 5", "4/1/2026": "Day 1", "4/2/2026": "Day 2", "4/3/2026": "Holiday", "4/6/2026": "Holiday", "4/7/2026": "Day 3", "4/8/2026": "Day 4", "4/9/2026": "Day 5", "4/10/2026": "Day 1", "4/13/2026": "Day 2", "4/14/2026": "Day 3", "4/15/2026": "Day 4", "4/16/2026": "Day 5", "4/17/2026": "PA Day", "4/20/2026": "Day 1", "4/21/2026": "Day 2", "4/22/2026": "Day 3", "4/23/2026": "Day 4", "4/24/2026": "Day 5", "4/27/2026": "Day 1", "4/28/2026": "Day 2", "4/29/2026": "Day 3", "4/30/2026": "Day 4", "5/1/2026": "Day 5", "5/4/2026": "Day 1", "5/5/2026": "Day 2", "5/6/2026": "Day 3", "5/7/2026": "Day 4", "5/8/2026": "Day 5", "5/11/2026": "Day 1", "5/12/2026": "Day 2", "5/13/2026": "Day 3", "5/14/2026": "Day 4", "5/15/2026": "Day 5", "5/18/2026": "Holiday", "5/19/2026": "Day 1", "5/20/2026": "Day 2", "5/21/2026": "Day 3", "5/22/2026": "Day 4", "5/25/2026": "Day 5", "5/26/2026": "Day 1", "5/27/2026": "Day 2", "5/28/2026": "Day 3", "5/29/2026": "Day 4", "6/1/2026": "Day 5", "6/2/2026": "Day 1", "6/3/2026": "Day 2", "6/4/2026": "Day 3", "6/5/2026": "Day 4", "6/8/2026": "PA Day", "6/9/2026": "Day 5", "6/10/2026": "Day 1", "6/11/2026": "Day 2", "6/12/2026": "Day 3", "6/15/2026": "Day 4", "6/16/2026": "Day 5", "6/17/2026": "Day 1", "6/18/2026": "Day 2", "6/19/2026": "Day 3", "6/22/2026": "Day 4", "6/23/2026": "Day 5", "6/24/2026": "Day 1", "6/25/2026": "Day 2", "6/26/2026": "PA Day"
-};
+const SCHOOL_CALENDAR = { "8/29/2025": "Holiday", "9/1/2025": "Holiday", "9/2/2025": "Day 1", "9/3/2025": "Day 2", "9/4/2025": "Day 3", "9/5/2025": "Day 4", "9/8/2025": "Day 5", "9/9/2025": "Day 1", "9/10/2025": "Day 2", "9/11/2025": "Day 3", "9/12/2025": "Day 4", "9/15/2025": "Day 5", "9/16/2025": "Day 1", "9/17/2025": "Day 2", "9/18/2025": "Day 3", "9/19/2025": "Day 4", "9/22/2025": "Day 5", "9/23/2025": "Day 1", "9/24/2025": "Day 2", "9/25/2025": "Day 3", "9/26/2025": "Day 4", "9/29/2025": "Day 5", "9/30/2025": "Day 1", "10/1/2025": "Day 2", "10/2/2025": "Day 3", "10/3/2025": "Day 4", "10/6/2025": "Day 5", "10/7/2025": "Day 1", "10/8/2025": "Day 2", "10/9/2025": "Day 3", "10/10/2025": "Day 4", "10/13/2025": "Holiday", "10/14/2025": "Day 5", "10/15/2025": "Day 1", "10/16/2025": "Day 2", "10/17/2025": "Day 3", "10/20/2025": "Day 4", "10/21/2025": "Day 5", "10/22/2025": "Day 1", "10/23/2025": "Day 2", "10/24/2025": "PA Day", "10/27/2025": "Day 3", "10/28/2025": "Day 4", "10/29/2025": "Day 5", "10/30/2025": "Day 1", "10/31/2025": "Day 2", "11/3/2025": "Day 3", "11/4/2025": "Day 4", "11/5/2025": "Day 5", "11/6/2025": "Day 1", "11/7/2025": "Day 2", "11/10/2025": "Day 3", "11/11/2025": "Day 4", "11/12/2025": "Day 5", "11/13/2025": "Day 1", "11/14/2025": "PA Day", "11/17/2025": "Day 2", "11/18/2025": "Day 3", "11/19/2025": "Day 4", "11/20/2025": "Day 5", "11/21/2025": "Day 1", "11/24/2025": "Day 2", "11/25/2025": "Day 3", "11/26/2025": "Day 4", "11/27/2025": "Day 5", "11/28/2025": "Day 1", "12/1/2025": "Day 2", "12/2/2025": "Day 3", "12/3/2025": "Day 4", "12/4/2025": "Day 5", "12/5/2025": "Day 1", "12/8/2025": "Day 2", "12/9/2025": "Day 3", "12/10/2025": "Day 4", "12/11/2025": "Day 5", "12/12/2025": "Day 1", "12/15/2025": "Day 2", "12/16/2025": "Day 3", "12/17/2025": "Day 4", "12/18/2025": "Day 5", "12/19/2025": "Day 1", "12/22/2025": "Holiday", "12/23/2025": "Holiday", "12/24/2025": "Holiday", "12/25/2025": "Holiday", "12/26/2025": "Holiday", "12/29/2025": "Holiday", "12/30/2025": "Holiday", "12/31/2025": "Holiday", "1/1/2026": "Holiday", "1/2/2026": "Holiday", "1/5/2026": "Day 2", "1/6/2026": "Day 3", "1/7/2026": "Day 4", "1/8/2026": "Day 5", "1/9/2026": "Day 1", "1/12/2026": "Day 2", "1/13/2026": "Day 3", "1/14/2026": "Day 4", "1/15/2026": "Day 5", "1/16/2026": "Day 1", "1/19/2026": "Day 2", "1/20/2026": "Day 3", "1/21/2026": "Day 4", "1/22/2026": "Day 5", "1/23/2026": "Day 1", "1/26/2026": "Day 2", "1/27/2026": "Day 3", "1/28/2026": "Day 4", "1/29/2026": "Day 5", "1/30/2026": "PA Day", "2/2/2026": "Day 1", "2/3/2026": "Day 2", "2/4/2026": "Day 3", "2/5/2026": "Day 4", "2/6/2026": "Day 5", "2/9/2026": "Day 1", "2/10/2026": "Day 2", "2/11/2026": "Day 3", "2/12/2026": "Day 4", "2/13/2026": "Day 5", "2/16/2026": "Holiday", "2/17/2026": "Day 1", "2/18/2026": "Day 2", "2/19/2026": "Day 3", "2/20/2026": "Day 4", "2/23/2026": "Day 5", "2/24/2026": "Day 1", "2/25/2026": "Day 2", "2/26/2026": "Day 3", "2/27/2026": "Day 4", "3/2/2026": "Day 5", "3/3/2026": "Day 1", "3/4/2026": "Day 2", "3/5/2026": "Day 3", "3/6/2026": "Day 4", "3/9/2026": "Day 5", "3/10/2026": "Day 1", "3/11/2026": "Day 2", "3/12/2026": "Day 3", "3/13/2026": "Holiday", "3/16/2026": "Holiday", "3/17/2026": "Holiday", "3/18/2026": "Holiday", "3/19/2026": "Holiday", "3/20/2026": "Holiday", "3/23/2026": "Day 4", "3/24/2026": "Day 5", "3/25/2026": "Day 1", "3/26/2026": "Day 2", "3/27/2026": "Day 3", "3/30/2026": "Day 4", "3/31/2026": "Day 5", "4/1/2026": "Day 1", "4/2/2026": "Day 2", "4/3/2026": "Holiday", "4/6/2026": "Holiday", "4/7/2026": "Day 3", "4/8/2026": "Day 4", "4/9/2026": "Day 5", "4/10/2026": "Day 1", "4/13/2026": "Day 2", "4/14/2026": "Day 3", "4/15/2026": "Day 4", "4/16/2026": "Day 5", "4/17/2026": "PA Day", "4/20/2026": "Day 1", "4/21/2026": "Day 2", "4/22/2026": "Day 3", "4/23/2026": "Day 4", "4/24/2026": "Day 5", "4/27/2026": "Day 1", "4/28/2026": "Day 2", "4/29/2026": "Day 3", "4/30/2026": "Day 4", "5/1/2026": "Day 5", "5/4/2026": "Day 1", "5/5/2026": "Day 2", "5/6/2026": "Day 3", "5/7/2026": "Day 4", "5/8/2026": "Day 5", "5/11/2026": "Day 1", "5/12/2026": "Day 2", "5/13/2026": "Day 3", "5/14/2026": "Day 4", "5/15/2026": "Day 5", "5/18/2026": "Holiday", "5/19/2026": "Day 1", "5/20/2026": "Day 2", "5/21/2026": "Day 3", "5/22/2026": "Day 4", "5/25/2026": "Day 5", "5/26/2026": "Day 1", "5/27/2026": "Day 2", "5/28/2026": "Day 3", "5/29/2026": "Day 4", "6/1/2026": "Day 5", "6/2/2026": "Day 1", "6/3/2026": "Day 2", "6/4/2026": "Day 3", "6/5/2026": "Day 4", "6/8/2026": "PA Day", "6/9/2026": "Day 5", "6/10/2026": "Day 1", "6/11/2026": "Day 2", "6/12/2026": "Day 3", "6/15/2026": "Day 4", "6/16/2026": "Day 5", "6/17/2026": "Day 1", "6/18/2026": "Day 2", "6/19/2026": "Day 3", "6/22/2026": "Day 4", "6/23/2026": "Day 5", "6/24/2026": "Day 1", "6/25/2026": "Day 2", "6/26/2026": "PA Day" };
 
 const sortedCalendar = Object.entries(SCHOOL_CALENDAR).sort((a, b) => new Date(a[0]) - new Date(b[0]));
 const schoolDays = sortedCalendar.filter(entry => entry[1].startsWith('Day'));
@@ -52,6 +58,7 @@ const
     adminForm = document.getElementById('admin-form'),
     cancelAdminBtn = document.getElementById('cancel-admin-btn'),
     deleteBannerBtn = document.getElementById('delete-banner-btn'),
+    notificationsToggle = document.getElementById('notifications-toggle'),
     
     // Mobile elements
     noCurrentDayMobile = document.getElementById('no-current-day-mobile'),
@@ -85,6 +92,7 @@ const
     recurringList = document.getElementById('recurring-list'),
     cancelChoiceBtn = document.getElementById('cancel-choice-btn'),
     cancelEditRecurringBtn = document.getElementById('cancel-edit-recurring-btn'),
+    deleteEntireSeriesBtn = document.getElementById('delete-entire-series-btn'),
 
     // Notification Modal
     notificationModal = document.getElementById('notification-modal'),
@@ -107,6 +115,10 @@ const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 const db = firebase.firestore(); // Firestore database reference
+
+document.fonts.ready.then(function () {
+    document.body.classList.add('material-symbols-outlined-ready');
+});
 
 // --- Authentication & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -148,6 +160,7 @@ function initializeApp() {
     populateReasonOptions();
     populateDayCheckboxes();
     fetchAndDisplayBanner();
+    setupEmailNotifications();
 
     datePicker.value = new Date().toISOString().split('T')[0];
     loadScheduleForSelectedDate();
@@ -190,6 +203,7 @@ function initializeApp() {
     // Add back the listeners for the recurring edit/choice modals
     cancelChoiceBtn.addEventListener('click', () => document.getElementById('recurring-choice-modal').classList.add('hidden'));
     cancelEditRecurringBtn.addEventListener('click', () => document.getElementById('edit-recurring-modal').classList.add('hidden'));
+    deleteEntireSeriesBtn.addEventListener('click', handleDeleteEntireSeries); // <-- ADD THIS LINE
     document.getElementById('edit-recurring-form').addEventListener('submit', handleRecurringUpdate);
     document.getElementById('edit-end-type-on-date').addEventListener('change', toggleEditEndCondition);
     document.getElementById('edit-end-type-after').addEventListener('change', toggleEditEndCondition);
@@ -197,6 +211,93 @@ function initializeApp() {
 
     // Notification modal listener
     notificationOkBtn.addEventListener('click', () => notificationModal.classList.add('hidden'));
+}
+
+// --- New Email Notification Logic ---
+function setupEmailNotifications() {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+
+    // This now correctly points to the 'settings' document
+    const settingsDocRef = db.collection('app_config').doc('settings');
+    settingsDocRef.onSnapshot(doc => {
+        const data = doc.data();
+        // This now correctly reads the 'emailNotificationsEnabled' field
+        const isEnabled = data?.emailNotificationsEnabled ?? true;
+        if (notificationsToggle) {
+            notificationsToggle.checked = isEnabled;
+        }
+    }, err => {
+        console.error("Error listening to notification settings:", err);
+    });
+
+    if (notificationsToggle) {
+        notificationsToggle.addEventListener('change', async (event) => {
+            const isEnabled = event.target.checked;
+            try {
+                // This now correctly writes to the 'emailNotificationsEnabled' field
+                await settingsDocRef.set({ emailNotificationsEnabled: isEnabled }, { merge: true });
+                showNotificationModal(`Email notifications are now ${isEnabled ? 'enabled' : 'disabled'}.`, 'success', 'Setting Updated');
+            } catch (error) {
+                console.error("Failed to update notification setting:", error);
+                showNotificationModal("Failed to save the notification setting. Please try again.", 'error', 'Save Failed');
+                // Revert the toggle state on failure
+                event.target.checked = !isEnabled;
+            }
+        });
+    }
+}
+
+async function sendNotificationEmail(action, bookingDetails) {
+    const user = auth.currentUser;
+    // Do not send emails if the current user is an admin
+    if (user && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return;
+    }
+
+    try {
+        const settingsDoc = await db.collection('app_config').doc('settings').get();
+        const isEnabled = settingsDoc.data()?.emailNotificationsEnabled ?? true;
+        
+        // Do not send emails if the feature is disabled
+        if (!isEnabled) {
+            return;
+        }
+        
+        // Convert the date string to a Date object for formatting
+        const bookingDate = new Date(bookingDetails.Date + 'T12:00:00');
+        const mdyFormat = (bookingDate.getMonth() + 1) + '/' + bookingDate.getDate() + '/' + bookingDate.getFullYear();
+        const dayType = SCHOOL_CALENDAR[mdyFormat] || " ";
+
+        const startPeriod = bookingDetails.StartPeriod;
+        const endPeriod = bookingDetails.EndPeriod || startPeriod;
+        const periodRange = startPeriod === endPeriod ? `Period ${startPeriod}` : `Periods ${startPeriod} - ${endPeriod}`;
+
+        const startTime = PERIOD_TIMES[startPeriod - 1].split(' - ')[0];
+        const endTime = PERIOD_TIMES[endPeriod - 1].split(' - ')[1];
+        const timeRange = `${startTime} - ${endTime}`;
+
+        const templateParams = {
+            'action': action,
+            'teacher_name': bookingDetails.TeacherName || 'N/A',
+            'booking_date': bookingDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+            'day_type': dayType,
+            'period_range': periodRange,
+            'time_range': timeRange,
+            'booking_reason': bookingDetails.BookingReason || 'N/A'
+        };
+        
+        // Determine which template to use based on the action
+        let templateId = EMAILJS_TEMPLATE_ID;
+        if (action === 'deleted' || action === 'series_deleted') {
+            templateId = EMAILJS_CANCEL_TEMPLATE_ID;
+        }
+
+        await emailjs.send(EMAILJS_SERVICE_ID, templateId, templateParams, EMAILJS_PUBLIC_KEY);
+        console.log("Email notification sent successfully.");
+
+    } catch (error) {
+        console.error("Failed to send email notification:", error);
+    }
 }
 
 // --- Admin Banner Logic ---
@@ -255,31 +356,37 @@ async function deleteBanner() {
     });
     if (!confirmed) return;
     try {
-        // To "delete" the banner, we just clear its message.
         await db.collection('app_config').doc('alert_banner').set({ "Message": "" }, { merge: true });
         adminModal.classList.add('hidden');
         fetchAndDisplayBanner();
     } catch (error) { 
-        alert(`Error deleting banner: ${error.message}`); 
+        showNotificationModal(`Error deleting banner: ${error.message}`, 'error');
     }
 }
 
 async function openAdminPanel() {
-    adminForm.reset();
+    adminForm.reset(); // This line resets the toggle
     try {
         const bannerDoc = await db.collection('app_config').doc('alert_banner').get();
         if (bannerDoc.exists) {
             const data = bannerDoc.data();
             document.getElementById('banner-message').value = data.Message || '';
             if (data.Expiry) {
-                // Convert Firestore Timestamp to a datetime-local string
                 const localDate = data.Expiry.toDate();
                 localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
                 document.getElementById('banner-expiry').value = localDate.toISOString().slice(0, 16);
             }
         }
+
+        // --- FIX STARTS HERE ---
+        // Fetch and apply the current notification setting
+        const settingsDoc = await db.collection('app_config').doc('settings').get();
+        const isEnabled = settingsDoc.data()?.emailNotificationsEnabled ?? true; // Default to true
+        document.getElementById('notifications-toggle').checked = isEnabled;
+        // --- FIX ENDS HERE ---
+
     } catch (error) {
-        console.error("Could not fetch banner details for admin panel:", error);
+        console.error("Could not fetch admin panel details:", error);
     }
     adminModal.classList.remove('hidden');
 }
@@ -288,7 +395,15 @@ async function openAdminPanel() {
 
 function populateReasonOptions() {
     reasonOptionsContainer.innerHTML = ''; // Clear previous options
+    const currentUser = auth.currentUser;
+    const isUserAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+
     BOOKING_REASONS.forEach(reason => {
+        // If the current reason is "Closed" and the user is NOT an admin, skip creating this option.
+        if (reason === "Closed" && !isUserAdmin) {
+            return; // This acts like 'continue' in a forEach loop
+        }
+
         const div = document.createElement('div');
         div.className = 'flex items-center';
         const input = document.createElement('input');
@@ -509,7 +624,7 @@ function updateEndPeriodOptions(dayNumber, selectedStart, availableSlots) {
     const endPeriodSelect = document.getElementById('end-period');
     endPeriodSelect.innerHTML = '';
 
-    for (let p = selectedStart; p <= 10; p++) {
+    for (let p = parseInt(selectedStart); p <= 10; p++) {
         if (availableSlots && availableSlots.includes(p)) {
             const option = document.createElement('option');
             option.value = p;
@@ -586,6 +701,7 @@ async function handleBookingSubmit(event) {
         } else {
             // Use .add() for creating a new booking
             await db.collection('bookings').add(fields);
+            sendNotificationEmail('created', fields);
         }
         hideBookingModal();
         loadScheduleForSelectedDate();
@@ -597,7 +713,12 @@ async function handleBookingSubmit(event) {
 
 async function cancelBooking(recordId) {
     try {
-        await db.collection('bookings').doc(recordId).delete();
+        const bookingDoc = await db.collection('bookings').doc(recordId).get();
+        if (bookingDoc.exists) {
+            const bookingDetails = bookingDoc.data();
+            await db.collection('bookings').doc(recordId).delete();
+            await sendNotificationEmail('deleted', bookingDetails);
+        }
         loadScheduleForSelectedDate(); // Refresh the grid
     } catch (error) {
         showNotificationModal('Could not cancel booking. Please try again.', 'error');
@@ -618,26 +739,24 @@ async function fetchAndPopulateBookings() {
 
             bookingsSnapshot.forEach(doc => {
                 const bookingData = doc.data();
+                // THIS IS THE FIX:
+                // Create a record object that includes the 'isRecurring' flag
+                // based on whether the SeriesID field exists.
                 const record = {
                     id: doc.id,
                     fields: bookingData,
-                    isRecurring: !!bookingData.SeriesID
+                    isRecurring: !!bookingData.SeriesID // Convert truthy/falsy to a true boolean
                 };
                 allBookingsForWeek.push(record);
             });
         }
         
-        // Redraw the grid content (while it's still invisible)
         resetGridToAvailable(allBookingsForWeek);
         renderBookings(allBookingsForWeek);
 
     } catch (error) {
         console.error("Error fetching and populating bookings:", error);
-        resetGridToAvailable(); // Show an empty grid on error
-    } finally {
-        // ALWAYS remove the loading class to make the grid visible again,
-        // starting the fade-in effect.
-        gridContainer.classList.remove('loading');
+        resetGridToAvailable(); 
     }
 }
 
@@ -772,11 +891,6 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
 }
 
 function resetGridToAvailable() {
-    // Clear previous highlights HERE instead of in updateDayInfo
-    document.querySelectorAll('.current-day, .current-day-header').forEach(el => {
-        el.classList.remove('current-day', 'current-day-header');
-    });
-
     const selectedDate = new Date(datePicker.value + 'T12:00:00');
     const selectedDateString = selectedDate.toLocaleDateString();
 
@@ -809,26 +923,8 @@ function resetGridToAvailable() {
             cell.onclick = null;
         }
     });
-
-    // Add header highlighting here as well
-    const selectedDateObj = new Date(datePicker.value + 'T12:00:00');
-    const selectedDayOfWeek = selectedDateObj.getDay();
-    
-    // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
-    let columnIndex;
-    if (selectedDayOfWeek === 0) { // Sunday
-        columnIndex = -1; // Invalid for school days
-    } else {
-        columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
-    }
-    
-    if (columnIndex >= 0 && columnIndex < 5) {
-        const headerElement = document.querySelector(`.grid-header.D${columnIndex + 1}`);
-        if (headerElement) {
-            headerElement.classList.add('current-day-header');
-        }
-    }
 }
+
 
 // Day-by-day nav (used by mobile arrows)
 function navigateDays(direction) {
@@ -927,18 +1023,19 @@ function updateTodayButtonVisibility() {
     todayBtn.classList.toggle('hidden', !shouldShow);
 }
 
+// Modified loadScheduleForSelectedDate function - add the Today button visibility update
 function loadScheduleForSelectedDate() {
-    // Add the loading class to start the fade-out effect immediately
-    gridContainer.classList.add('loading');
-
     const selectedDate = new Date(datePicker.value);
     const timezoneOffset = selectedDate.getTimezoneOffset() * 60000;
     const adjustedDate = new Date(selectedDate.getTime() + timezoneOffset);
-    const mdyFormat = (adjustedDate.getMonth() + 1) + '/' + adjustedDate.getDate() + '/' + adjustedDate.getFullYear();
+    const mdyFormat =
+        (adjustedDate.getMonth() + 1) + '/' +
+        adjustedDate.getDate() + '/' +
+        adjustedDate.getFullYear();
 
-    updateDayInfo(mdyFormat);
-    updateTodayButtonVisibility();
-    fetchAndPopulateBookings();
+    updateDayInfo(mdyFormat);          // updates headers, labels, mobile title, etc.
+    updateTodayButtonVisibility();     // NEW: keep the Today button logic in sync
+    fetchAndPopulateBookings();        // draws available + existing bookings
 }
 
 function getWeekDateInfo(selectedDateString) {
@@ -966,7 +1063,10 @@ function getWeekDateInfo(selectedDateString) {
 }
 
 function updateDayInfo(dateString) {
-    // DON'T clear classes here - move this to resetGridToAvailable instead
+    // Clear previous highlights
+    document.querySelectorAll('.current-day, .current-day-header').forEach(el => {
+        el.classList.remove('current-day', 'current-day-header');
+    });
     
     const weekDates = getWeekDateInfo(dateString);
     currentWeekDates = weekDates.map(d => d ? new Date(d).toISOString().split('T')[0] : null);
@@ -1002,6 +1102,22 @@ function updateDayInfo(dateString) {
         infoBanner.classList.add('hidden');
         noCurrentDayMobile.classList.add('hidden');
         gridContainer.classList.remove('hidden');
+        
+        // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
+        let columnIndex;
+        if (selectedDayOfWeek === 0) { // Sunday
+            columnIndex = -1; // Invalid for school days
+        } else {
+            columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
+        }
+        
+        // FIXED: Add the header highlighting here as well
+        if (columnIndex >= 0 && columnIndex < 5) {
+            const headerElement = document.querySelector(`.grid-header.D${columnIndex + 1}`);
+            if (headerElement) {
+                headerElement.classList.add('current-day-header');
+            }
+        }
         
         const dayDate = new Date(dateString);
         mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
@@ -1099,6 +1215,21 @@ function hideConfirmDeleteModal() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     delete modal.dataset.recordId; // Clean up the stored ID
+}
+
+async function handleDeleteEntireSeries() {
+    const form = document.getElementById('edit-recurring-form');
+    const masterRecordId = form.dataset.masterRecordId;
+
+    if (!masterRecordId) {
+        return showNotificationModal('Could not delete series: Missing record ID.', 'error');
+    }
+
+    // Hide the current modal before showing the confirmation
+    document.getElementById('edit-recurring-modal').classList.add('hidden');
+
+    // Call the existing delete function, which already has a confirmation modal
+    await deleteRecurringSeries(masterRecordId);
 }
 
 // This function runs when the user clicks "Yes, Cancel Booking".
@@ -1223,6 +1354,7 @@ async function handleRecurringBooking(fields) {
         showNotificationModal(`Successfully created ${seriesDates.length} recurring bookings.`, 'success');
         hideBookingModal();
         loadScheduleForSelectedDate();
+        await sendNotificationEmail('created', { ...fields, isRecurring: true, RecurrenceType: type, RecurrenceDays: selectedDays });
     } catch (error) {
         console.error("Error creating recurring bookings:", error);
         showNotificationModal(`Failed to create bookings: ${error.message}`, 'error');
@@ -1300,38 +1432,34 @@ async function deleteRecurringSeries(recordId) {
     if (!confirmed) return;
     
     try {
-        // 1. Get the master record to find its SeriesID
         const masterDoc = await db.collection('recurring_bookings').doc(recordId).get();
         if (!masterDoc.exists) throw new Error('Master recurring record not found.');
-        const seriesId = masterDoc.data().SeriesID;
+        const masterData = masterDoc.data();
+        const seriesId = masterData.SeriesID;
         if (!seriesId) throw new Error('Cannot delete: This booking is missing its Series ID.');
         
-        // 2. Find all future bookings that are part of this series
         const todayStr = new Date().toISOString().split('T')[0];
         const bookingsToDeleteSnapshot = await db.collection('bookings')
             .where('SeriesID', '==', seriesId)
             .where('Date', '>=', todayStr)
             .get();
 
-        // 3. Use a batch to delete them all + the master record
         const batch = db.batch();
-        
         bookingsToDeleteSnapshot.forEach(doc => {
-            batch.delete(doc.ref); // Add each booking to the delete batch
+            batch.delete(doc.ref);
         });
-        
-        batch.delete(masterDoc.ref); // Add the master record to the delete batch
+        batch.delete(masterDoc.ref);
 
-        // 4. Commit the batch
         await batch.commit();
         
-        alert(`Recurring series deleted successfully. ${bookingsToDeleteSnapshot.size} future bookings were removed.`);
+        showNotificationModal(`Recurring series deleted successfully. ${bookingsToDeleteSnapshot.size} future bookings were removed.`, 'success');
         manageRecurringModal.classList.add('hidden');
         loadScheduleForSelectedDate();
+        await sendNotificationEmail('series_deleted', masterData);
         
     } catch (error) {
         console.error('Error deleting recurring series:', error);
-        alert(`Error deleting recurring series: ${error.message}`);
+        showNotificationModal(`Error deleting recurring series: ${error.message}`, 'error');
     }
 }
 
@@ -1384,31 +1512,20 @@ Date = class extends OriginalDate {
 
 async function handleRecurringIconClick(seriesId) {
     const user = auth.currentUser;
-    // Check if the current user is in the admin list
     if (user && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         try {
-            // Find the master record in 'recurring_bookings' that matches the SeriesID
-            const snapshot = await db.collection('recurring_bookings')
-                                     .where('SeriesID', '==', seriesId)
-                                     .limit(1)
-                                     .get();
-                                     
+            const snapshot = await db.collection('recurring_bookings').where('SeriesID', '==', seriesId).limit(1).get();
             if (snapshot.empty) {
                 throw new Error("Could not find the master record for this recurring series.");
             }
-            
             const masterRecordId = snapshot.docs[0].id;
-            
-            // Now, open the panel and pass the correct master record ID to highlight it
             openManageRecurringPanel(masterRecordId);
-
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            showNotificationModal(error.message, 'error');
         }
     } else {
-        // If they are not an admin, show a simple alert
-        alert("This is a recurring booking. You do not have permission to modify it. Please contact an administrator.");
+        showNotificationModal("This is a recurring booking. You do not have permission to modify it. Please contact an administrator.", 'info', 'Permission Denied');
     }
 }
 
@@ -1432,16 +1549,15 @@ async function showEditRecurringModal(seriesId) {
     const modal = document.getElementById('edit-recurring-modal');
     const form = document.getElementById('edit-recurring-form');
     form.reset();
-    form.dataset.seriesId = seriesId; // Store the series ID on the form
+    form.dataset.seriesId = seriesId;
 
     try {
         const snapshot = await db.collection('recurring_bookings').where('SeriesID', '==', seriesId).limit(1).get();
         if (snapshot.empty) throw new Error("Could not find the master record for this series.");
         
         const masterRecord = snapshot.docs[0].data();
-        form.dataset.masterRecordId = snapshot.docs[0].id; // Store the document ID
+        form.dataset.masterRecordId = snapshot.docs[0].id;
         
-        // Populate the form
         if (masterRecord.EndDate) {
             document.getElementById('edit-end-type-on-date').checked = true;
             document.getElementById('edit-end-date').value = masterRecord.EndDate;
@@ -1453,7 +1569,7 @@ async function showEditRecurringModal(seriesId) {
         modal.classList.remove('hidden');
         
     } catch (error) {
-        alert(error.message);
+        showNotificationModal(error.message, 'error');
         console.error(error);
     }
 }
@@ -1465,7 +1581,7 @@ async function handleRecurringUpdate(event) {
     const masterRecordId = form.dataset.masterRecordId;
 
     if (!seriesId || !masterRecordId) {
-        return alert('Error: Missing series or record ID');
+        return showNotificationModal('Cannot save. Missing series or record ID.', 'error');
     }
 
     const submitButton = form.querySelector('button[type="submit"]');
@@ -1496,14 +1612,12 @@ async function handleRecurringUpdate(event) {
         const finalDate = newEndDate ? new Date(newEndDate + 'T23:59:59') : new Date('2099-12-31');
 
         for (const [dateString, dayType] of sortedCalendar) {
-            // === THIS IS THE FIX: Manually parse the M/D/YYYY date string ===
             const dateParts = dateString.split('/');
             const month = dateParts[0].padStart(2, '0');
             const day = dateParts[1].padStart(2, '0');
             const year = dateParts[2];
             const isoDateString = `${year}-${month}-${day}`;
             const currentDate = new Date(isoDateString + 'T12:00:00');
-            // =================================================================
 
             if (currentDate > finalDate) break;
             if (newMaxOccurrences && allNewDates.length >= newMaxOccurrences) break;
@@ -1519,7 +1633,6 @@ async function handleRecurringUpdate(event) {
                 }
             }
             if (match) {
-                // We already have the correct 'YYYY-MM-DD' string, so we can just push that.
                 allNewDates.push(isoDateString);
             }
         }
@@ -1554,13 +1667,9 @@ async function handleRecurringUpdate(event) {
             }
             const newBookingRef = db.collection('bookings').doc();
             batch.set(newBookingRef, {
-                TeacherName: masterRecord.TeacherName,
-                BookingReason: masterRecord.BookingReason,
-                StartPeriod: masterRecord.StartPeriod,
-                EndPeriod: masterRecord.EndPeriod,
-                Date: date,
-                SeriesID: seriesId,
-                userEmail: masterRecord.userEmail
+                TeacherName: masterRecord.TeacherName, BookingReason: masterRecord.BookingReason,
+                StartPeriod: masterRecord.StartPeriod, EndPeriod: masterRecord.EndPeriod,
+                Date: date, SeriesID: seriesId, userEmail: masterRecord.userEmail
             });
         }
 
@@ -1581,7 +1690,7 @@ async function handleRecurringUpdate(event) {
 
     } catch (error) {
         console.error('Error updating recurring series:', error);
-        alert("Error updating series: " + error.message);
+        showNotificationModal(error.message, 'error', 'Update Failed');
     } finally {
         submitButton.textContent = 'Save Changes';
         submitButton.disabled = false;
