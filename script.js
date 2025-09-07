@@ -20,8 +20,8 @@ const ALLOWED_DOMAIN = "ddsb.ca";
 const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"];
 
 const PERIOD_TIMES = ["8:05 - 8:35", "8:35 - 9:05", "9:05 - 9:35", "9:50 - 10:20", "10:20 - 10:50", "11:50 - 12:20", "12:20 - 12:50", "12:50 - 1:20", "1:35 - 2:05", "2:05 - 2:35"];
-const BOOKING_REASONS = ["Book Exchange", "Partnering", "Presentation", "Closed", "Other"];
-const REASON_ICONS = { "Book Exchange": "book_2", "Partnering": "group", "Presentation": "co_present", "Closed": "event_busy", "Other": "calendar_check" };
+const BOOKING_REASONS = ["Book Exchange", "Partnering", "Presentation", "Closed", "Coverage", "Other"];
+const REASON_ICONS = { "Book Exchange": "book_2", "Partnering": "group", "Presentation": "co_present", "Closed": "event_busy", "Coverage": "chat_bubble", "Other": "calendar_check" };
 const SCHOOL_CALENDAR = { "8/29/2025": "Holiday", "9/1/2025": "Holiday", "9/2/2025": "Day 1", "9/3/2025": "Day 2", "9/4/2025": "Day 3", "9/5/2025": "Day 4", "9/8/2025": "Day 5", "9/9/2025": "Day 1", "9/10/2025": "Day 2", "9/11/2025": "Day 3", "9/12/2025": "Day 4", "9/15/2025": "Day 5", "9/16/2025": "Day 1", "9/17/2025": "Day 2", "9/18/2025": "Day 3", "9/19/2025": "Day 4", "9/22/2025": "Day 5", "9/23/2025": "Day 1", "9/24/2025": "Day 2", "9/25/2025": "Day 3", "9/26/2025": "Day 4", "9/29/2025": "Day 5", "9/30/2025": "Day 1", "10/1/2025": "Day 2", "10/2/2025": "Day 3", "10/3/2025": "Day 4", "10/6/2025": "Day 5", "10/7/2025": "Day 1", "10/8/2025": "Day 2", "10/9/2025": "Day 3", "10/10/2025": "Day 4", "10/13/2025": "Holiday", "10/14/2025": "Day 5", "10/15/2025": "Day 1", "10/16/2025": "Day 2", "10/17/2025": "Day 3", "10/20/2025": "Day 4", "10/21/2025": "Day 5", "10/22/2025": "Day 1", "10/23/2025": "Day 2", "10/24/2025": "PA Day", "10/27/2025": "Day 3", "10/28/2025": "Day 4", "10/29/2025": "Day 5", "10/30/2025": "Day 1", "10/31/2025": "Day 2", "11/3/2025": "Day 3", "11/4/2025": "Day 4", "11/5/2025": "Day 5", "11/6/2025": "Day 1", "11/7/2025": "Day 2", "11/10/2025": "Day 3", "11/11/2025": "Day 4", "11/12/2025": "Day 5", "11/13/2025": "Day 1", "11/14/2025": "PA Day", "11/17/2025": "Day 2", "11/18/2025": "Day 3", "11/19/2025": "Day 4", "11/20/2025": "Day 5", "11/21/2025": "Day 1", "11/24/2025": "Day 2", "11/25/2025": "Day 3", "11/26/2025": "Day 4", "11/27/2025": "Day 5", "11/28/2025": "Day 1", "12/1/2025": "Day 2", "12/2/2025": "Day 3", "12/3/2025": "Day 4", "12/4/2025": "Day 5", "12/5/2025": "Day 1", "12/8/2025": "Day 2", "12/9/2025": "Day 3", "12/10/2025": "Day 4", "12/11/2025": "Day 5", "12/12/2025": "Day 1", "12/15/2025": "Day 2", "12/16/2025": "Day 3", "12/17/2025": "Day 4", "12/18/2025": "Day 5", "12/19/2025": "Day 1", "12/22/2025": "Holiday", "12/23/2025": "Holiday", "12/24/2025": "Holiday", "12/25/2025": "Holiday", "12/26/2025": "Holiday", "12/29/2025": "Holiday", "12/30/2025": "Holiday", "12/31/2025": "Holiday", "1/1/2026": "Holiday", "1/2/2026": "Holiday", "1/5/2026": "Day 2", "1/6/2026": "Day 3", "1/7/2026": "Day 4", "1/8/2026": "Day 5", "1/9/2026": "Day 1", "1/12/2026": "Day 2", "1/13/2026": "Day 3", "1/14/2026": "Day 4", "1/15/2026": "Day 5", "1/16/2026": "Day 1", "1/19/2026": "Day 2", "1/20/2026": "Day 3", "1/21/2026": "Day 4", "1/22/2026": "Day 5", "1/23/2026": "Day 1", "1/26/2026": "Day 2", "1/27/2026": "Day 3", "1/28/2026": "Day 4", "1/29/2026": "Day 5", "1/30/2026": "PA Day", "2/2/2026": "Day 1", "2/3/2026": "Day 2", "2/4/2026": "Day 3", "2/5/2026": "Day 4", "2/6/2026": "Day 5", "2/9/2026": "Day 1", "2/10/2026": "Day 2", "2/11/2026": "Day 3", "2/12/2026": "Day 4", "2/13/2026": "Day 5", "2/16/2026": "Holiday", "2/17/2026": "Day 1", "2/18/2026": "Day 2", "2/19/2026": "Day 3", "2/20/2026": "Day 4", "2/23/2026": "Day 5", "2/24/2026": "Day 1", "2/25/2026": "Day 2", "2/26/2026": "Day 3", "2/27/2026": "Day 4", "3/2/2026": "Day 5", "3/3/2026": "Day 1", "3/4/2026": "Day 2", "3/5/2026": "Day 3", "3/6/2026": "Day 4", "3/9/2026": "Day 5", "3/10/2026": "Day 1", "3/11/2026": "Day 2", "3/12/2026": "Day 3", "3/13/2026": "Holiday", "3/16/2026": "Holiday", "3/17/2026": "Holiday", "3/18/2026": "Holiday", "3/19/2026": "Holiday", "3/20/2026": "Holiday", "3/23/2026": "Day 4", "3/24/2026": "Day 5", "3/25/2026": "Day 1", "3/26/2026": "Day 2", "3/27/2026": "Day 3", "3/30/2026": "Day 4", "3/31/2026": "Day 5", "4/1/2026": "Day 1", "4/2/2026": "Day 2", "4/3/2026": "Holiday", "4/6/2026": "Holiday", "4/7/2026": "Day 3", "4/8/2026": "Day 4", "4/9/2026": "Day 5", "4/10/2026": "Day 1", "4/13/2026": "Day 2", "4/14/2026": "Day 3", "4/15/2026": "Day 4", "4/16/2026": "Day 5", "4/17/2026": "PA Day", "4/20/2026": "Day 1", "4/21/2026": "Day 2", "4/22/2026": "Day 3", "4/23/2026": "Day 4", "4/24/2026": "Day 5", "4/27/2026": "Day 1", "4/28/2026": "Day 2", "4/29/2026": "Day 3", "4/30/2026": "Day 4", "5/1/2026": "Day 5", "5/4/2026": "Day 1", "5/5/2026": "Day 2", "5/6/2026": "Day 3", "5/7/2026": "Day 4", "5/8/2026": "Day 5", "5/11/2026": "Day 1", "5/12/2026": "Day 2", "5/13/2026": "Day 3", "5/14/2026": "Day 4", "5/15/2026": "Day 5", "5/18/2026": "Holiday", "5/19/2026": "Day 1", "5/20/2026": "Day 2", "5/21/2026": "Day 3", "5/22/2026": "Day 4", "5/25/2026": "Day 5", "5/26/2026": "Day 1", "5/27/2026": "Day 2", "5/28/2026": "Day 3", "5/29/2026": "Day 4", "6/1/2026": "Day 5", "6/2/2026": "Day 1", "6/3/2026": "Day 2", "6/4/2026": "Day 3", "6/5/2026": "Day 4", "6/8/2026": "PA Day", "6/9/2026": "Day 5", "6/10/2026": "Day 1", "6/11/2026": "Day 2", "6/12/2026": "Day 3", "6/15/2026": "Day 4", "6/16/2026": "Day 5", "6/17/2026": "Day 1", "6/18/2026": "Day 2", "6/19/2026": "Day 3", "6/22/2026": "Day 4", "6/23/2026": "Day 5", "6/24/2026": "Day 1", "6/25/2026": "Day 2", "6/26/2026": "PA Day" };
 
 const sortedCalendar = Object.entries(SCHOOL_CALENDAR).sort((a, b) => new Date(a[0]) - new Date(b[0]));
@@ -29,6 +29,11 @@ const schoolDays = sortedCalendar.filter(entry => entry[1].startsWith('Day'));
 
 // --- Element References ---
 const 
+
+    // App state containers
+    loginScreen = document.getElementById('login-screen'),
+    mainApp = document.getElementById('main-app'),
+
     // Main page elements
     loginBtn = document.getElementById('login-btn'),
     logoutBtn = document.getElementById('logout-btn'),
@@ -122,30 +127,83 @@ document.fonts.ready.then(function () {
 
 // --- Authentication & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    loginBtn.addEventListener('click', () => auth.signInWithPopup(provider));
+    // --- Authentication event listeners ---
+    loginBtn.addEventListener('click', () => {
+        // Use Popup login (shows COOP warning in console, but works fine)
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                console.log('Sign-in successful:', result.user.email);
+            })
+            .catch((error) => {
+                console.error('Sign-in error:', error);
+                showNotificationModal(
+                    "Sign-in failed. Please try again.",
+                    'error',
+                    'Authentication Error'
+                );
+            });
+
+        /*
+        // 👉 If you want to avoid the Cross-Origin warning,
+        // comment out the signInWithPopup() above and use redirect instead:
+        auth.signInWithRedirect(provider);
+        */
+    });
+
     logoutBtn.addEventListener('click', () => auth.signOut());
-    auth.onAuthStateChanged(user => {
+
+    // --- Single authentication state change listener ---
+    auth.onAuthStateChanged((user) => {
         if (user) {
+            console.log('User signed in:', user.email);
+
             if (user.email.endsWith('@' + ALLOWED_DOMAIN)) {
-                loginBtn.classList.add('hidden');
+                // ✅ User has the correct domain
+                loginScreen.style.display = 'none'; // 👈 CHANGED
+                mainApp.style.display = 'block';    // 👈 CHANGED
+
                 appContent.classList.remove('hidden');
                 userInfo.classList.remove('hidden');
-                userName.textContent = user.displayName;
+                userName.textContent = user.displayName || user.email;
                 mobileDayInfo.classList.remove('hidden');
+
+                // Show admin button for admin users
                 if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                     adminBtn.classList.remove('hidden');
                 }
+
+                // Initialize the app if not already done
                 if (!appInitialized) {
-                    initializeApp();
-                    appInitialized = true;
+                    try {
+                        console.log("Attempting to initialize the application...");
+                        initializeApp();
+                        appInitialized = true;
+                        console.log("Application initialized successfully.");
+                    } catch (error) {
+                        console.error("A CRITICAL ERROR occurred during app initialization:", error);
+                        document.body.innerHTML = `<div style="padding: 2em; color: red; background-color: #fff0f0; border: 2px solid red; margin: 2em; font-family: monospace;">
+                            <h1>Application Error</h1>
+                            <p>A critical error stopped the app from loading. The login screen may have reappeared because of this. See details below and in the console.</p>
+                            <pre style="white-space: pre-wrap; word-wrap: break-word;">${error.stack}</pre>
+                        </div>`;
+                    }
                 }
             } else {
-                showNotificationModal("You must use a @" + ALLOWED_DOMAIN + " Google account to sign in.", 'error', 'Access Denied');
-                auth.signOut();
+                // ❌ User has the wrong domain
+                showNotificationModal(
+                    "You must use a @" + ALLOWED_DOMAIN + " Google account to sign in.",
+                    'error',
+                    'Access Denied'
+                );
+                auth.signOut(); // Force sign-out
             }
         } else {
-            loginBtn.classList.remove('hidden');
-            appContent.classList.add('hidden');
+            console.log('User signed out');
+
+            // Reset UI state
+            loginScreen.style.display = 'flex'; // 👈 CHANGED
+            mainApp.style.display = 'none';     // 👈 CHANGED
+            
             userInfo.classList.add('hidden');
             userName.textContent = '';
             adminBtn.classList.add('hidden');
@@ -153,6 +211,19 @@ document.addEventListener('DOMContentLoaded', () => {
             appInitialized = false;
         }
     });
+
+    // --- If using redirect login, handle result here ---
+    auth.getRedirectResult()
+        .then((result) => {
+            if (result.user) {
+                console.log('Redirect sign-in successful:', result.user.email);
+            }
+        })
+        .catch((error) => {
+            if (error && error.code !== 'auth/no-auth-event') {
+                console.error('Redirect sign-in error:', error);
+            }
+        });        
 });
 
 function initializeApp() {
@@ -399,8 +470,8 @@ function populateReasonOptions() {
     const isUserAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
     BOOKING_REASONS.forEach(reason => {
-        // If the current reason is "Closed" and the user is NOT an admin, skip creating this option.
-        if (reason === "Closed" && !isUserAdmin) {
+        // If the reason is "Closed" OR "Coverage" and the user is NOT an admin, skip it.
+        if ((reason === "Closed" || reason === "Coverage") && !isUserAdmin) {
             return; // This acts like 'continue' in a forEach loop
         }
 
@@ -433,13 +504,19 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
     delete bookingForm.dataset.recordId;
     document.getElementById('teacher-name').value = auth.currentUser.displayName;
     otherReasonInput.style.display = 'none';
+    otherReasonInput.required = false;
     document.querySelector('input[name="bookingReason"][value="Book Exchange"]').checked = true;
     document.getElementById('start-period-container').classList.add('hidden');
     deleteBookingBtn.classList.add('hidden');
 
-    const displayDate = new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
+    // --- APPLYING THE SAME ROBUST FIX HERE ---
+    const dateParts = dateString.split('-');
+    const localDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    const displayDate = localDate.toLocaleDateString('en-US', {
         dateStyle: 'full'
     });
+    // --- END OF FIX ---
+
     modalTitle.innerHTML = `
         <span class="material-symbols-outlined align-middle text-blue-600">calendar_month</span>
         ${displayDate}<br>
@@ -447,7 +524,6 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
         Starting Period ${startPeriod}
         `;
     
-    // Logic to populate the End Period dropdown
     const endPeriodSelect = document.getElementById('end-period');
     endPeriodSelect.innerHTML = '';
     for (let p = parseInt(startPeriod); p <= 10; p++) {
@@ -468,11 +544,10 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
     bookingForm.dataset.startPeriod = startPeriod;
     bookingForm.dataset.date = dateString;
     
-    // --- NEW LOGIC for showing recurring section ---
     if (ADMIN_EMAILS.includes(auth.currentUser.email.toLowerCase())) {
         recurringSection.classList.remove('hidden');
-        makeRecurringCheckbox.checked = false; // Ensure it's unchecked by default
-        recurringOptions.classList.add('hidden'); // Hide the options initially
+        makeRecurringCheckbox.checked = false; 
+        recurringOptions.classList.add('hidden'); 
     } else {
         recurringSection.classList.add('hidden');
     }
@@ -484,7 +559,6 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
 
 async function showEditModal(recordId, isDetached = false) {
     try {
-        // Step 1: Fetch the specific booking document from Firestore
         const docRef = db.collection('bookings').doc(recordId);
         const docSnap = await docRef.get();
 
@@ -493,6 +567,18 @@ async function showEditModal(recordId, isDetached = false) {
         }
         const recordToEdit = { id: docSnap.id, fields: docSnap.data() };
         
+        // --- START OF NEW SECURITY CHECK ---
+        const currentUser = auth.currentUser;
+        const bookingOwnerEmail = recordToEdit.fields.userEmail || '';
+        const isUserAdmin = ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+        const isUserOwner = currentUser.email.toLowerCase() === bookingOwnerEmail.toLowerCase();
+
+        if (!isUserAdmin && !isUserOwner) {
+            showNotificationModal("You do not have permission to edit this booking.", 'error', 'Permission Denied');
+            return;
+        }
+        // --- END OF NEW SECURITY CHECK ---
+
         const { 
             Date: recordDateStr, 
             StartPeriod: currentStart, 
@@ -500,18 +586,18 @@ async function showEditModal(recordId, isDetached = false) {
             TeacherName: teacherName = '',
             BookingReason: bookingReason = 'Book Exchange'
         } = recordToEdit.fields;
+        
+        // ... (the rest of the function is unchanged) ...
 
-        // Step 2: Fetch ALL other bookings for that same day to check for conflicts
         const bookingsSnapshot = await db.collection('bookings')
                                          .where('Date', '==', recordDateStr)
                                          .get();
 
-        // Step 3: Create an availability map for all 10 periods
         const periodAvailability = {};
         for (let p = 1; p <= 10; p++) periodAvailability[p] = true;
 
         bookingsSnapshot.forEach(doc => {
-            if (doc.id === recordId) return; // Skip the booking we are currently editing
+            if (doc.id === recordId) return;
             const booking = doc.data();
             const start = booking.StartPeriod;
             const end = booking.EndPeriod || start;
@@ -520,7 +606,6 @@ async function showEditModal(recordId, isDetached = false) {
             }
         });
 
-        // Step 4: Find the boundaries of the continuous available block
         let earliestStart = currentStart;
         while (earliestStart > 1 && periodAvailability[earliestStart - 1]) {
             earliestStart--;
@@ -530,10 +615,9 @@ async function showEditModal(recordId, isDetached = false) {
             latestEnd++;
         }
 
-        // Step 5: Set up the modal
         bookingForm.reset();
         bookingForm.dataset.recordId = recordId;
-        bookingForm.dataset.isDetached = isDetached; // Set the detached status
+        bookingForm.dataset.isDetached = isDetached;
 
         modalTitle.innerHTML = `<span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span> Edit Booking`;
         bookingForm.querySelector('.book').textContent = 'Update Booking';
@@ -542,7 +626,6 @@ async function showEditModal(recordId, isDetached = false) {
         
         document.getElementById('teacher-name').value = teacherName;
         
-        // Handle booking reason
         const reasonRadio = document.querySelector(`input[name="bookingReason"][value="${bookingReason}"]`);
         if (reasonRadio) {
             reasonRadio.checked = true;
@@ -550,16 +633,14 @@ async function showEditModal(recordId, isDetached = false) {
             if (bookingReason === 'Other') {
                 otherReasonInput.style.display = 'block';
                 otherReasonInput.required = true;
-                otherReasonInput.value = bookingReason; // Use original reason if it was "Other"
+                otherReasonInput.value = bookingReason;
             }
         } else {
-            // Fallback for custom reasons not in the standard list
             document.querySelector(`input[name="bookingReason"][value="Other"]`).checked = true;
             otherReasonInput.style.display = 'block';
             otherReasonInput.required = true;
             otherReasonInput.value = bookingReason;
         }
-
 
         const startPeriodSelect = document.getElementById('start-period');
         startPeriodSelect.innerHTML = '';
@@ -578,7 +659,6 @@ async function showEditModal(recordId, isDetached = false) {
             updateEndPeriodOptionsForEdit(parseInt(startPeriodSelect.value), latestEnd);
         };
         
-        // Ensure recurring options are hidden when editing a single event
         recurringSection.classList.add('hidden');
         makeRecurringCheckbox.checked = false;
 
@@ -589,7 +669,7 @@ async function showEditModal(recordId, isDetached = false) {
     } catch (error) {
         showNotificationModal('Could not load booking for editing. The schedule may have been updated by another user.', 'error');
         console.error(error);
-        loadScheduleForSelectedDate(); // Refresh schedule on error
+        loadScheduleForSelectedDate();
     }
 }
 
@@ -713,10 +793,25 @@ async function handleBookingSubmit(event) {
 
 async function cancelBooking(recordId) {
     try {
-        const bookingDoc = await db.collection('bookings').doc(recordId).get();
+        const bookingDocRef = db.collection('bookings').doc(recordId);
+        const bookingDoc = await bookingDocRef.get();
+        
         if (bookingDoc.exists) {
             const bookingDetails = bookingDoc.data();
-            await db.collection('bookings').doc(recordId).delete();
+
+            // --- START OF NEW SECURITY CHECK ---
+            const currentUser = auth.currentUser;
+            const bookingOwnerEmail = bookingDetails.userEmail || '';
+            const isUserAdmin = ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+            const isUserOwner = currentUser.email.toLowerCase() === bookingOwnerEmail.toLowerCase();
+
+            if (!isUserAdmin && !isUserOwner) {
+                showNotificationModal("You do not have permission to delete this booking.", 'error', 'Permission Denied');
+                return;
+            }
+            // --- END OF NEW SECURITY CHECK ---
+
+            await bookingDocRef.delete();
             await sendNotificationEmail('deleted', bookingDetails);
         }
         loadScheduleForSelectedDate(); // Refresh the grid
@@ -733,22 +828,30 @@ async function fetchAndPopulateBookings() {
         let allBookingsForWeek = [];
 
         if (validDates.length > 0) {
+            // Fetch individual bookings
             const bookingsSnapshot = await db.collection('bookings')
                                              .where('Date', 'in', validDates)
                                              .get();
 
             bookingsSnapshot.forEach(doc => {
                 const bookingData = doc.data();
-                // THIS IS THE FIX:
-                // Create a record object that includes the 'isRecurring' flag
-                // based on whether the SeriesID field exists.
                 const record = {
                     id: doc.id,
                     fields: bookingData,
-                    isRecurring: !!bookingData.SeriesID // Convert truthy/falsy to a true boolean
+                    isRecurring: !!bookingData.SeriesID
                 };
                 allBookingsForWeek.push(record);
             });
+
+            // Fetch and generate recurring booking instances
+            const recurringSnapshot = await db.collection('recurring_bookings').get();
+            const recurringInstances = generateRecurringInstancesForWeek(
+                recurringSnapshot.docs.map(doc => ({ id: doc.id, fields: doc.data() })),
+                validDates
+            );
+
+            // Add recurring instances to the bookings list
+            allBookingsForWeek.push(...recurringInstances);
         }
         
         resetGridToAvailable(allBookingsForWeek);
@@ -762,6 +865,7 @@ async function fetchAndPopulateBookings() {
 
 function renderBookings(bookings) {
     const selectedDate = new Date(datePicker.value + 'T12:00:00').toLocaleDateString();
+    const currentUser = auth.currentUser; // Get the current user once
 
     bookings.forEach(record => {
         const startPeriod = record.fields.StartPeriod;
@@ -784,17 +888,34 @@ function renderBookings(bookings) {
 
             const isFirstCell = (p === startPeriod);
 
-            const actionsHTML = record.isRecurring
-                ? `<div class="booking-actions absolute top-1 right-1 z-10"><span class="material-symbols-outlined text-gray-500" style="font-size: 20px;">event_repeat</span></div>`
-                : `<div class="booking-actions absolute top-1 right-1 flex items-center gap-1 sm:gap-2 z-10">
-                       <span class="material-symbols-outlined edit-btn text-gray-600 hover:text-gray-900 cursor-pointer" data-record-id="${record.id}" title="Edit Booking">edit</span>
-                       <span class="material-symbols-outlined cancel-btn text-gray-600 hover:text-red-600 cursor-pointer" data-record-id="${record.id}" title="Cancel Booking">delete</span>
-                   </div>`;
+            let actionsHTML = ''; // Default to no actions
+
+            // --- START OF NEW PERMISSION LOGIC ---
+            const isUserAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+            const bookingOwnerEmail = record.fields.userEmail || '';
+            const isUserOwner = currentUser && currentUser.email.toLowerCase() === bookingOwnerEmail.toLowerCase();
+
+            // Determine if the user has modification rights
+            const canModify = isUserAdmin || isUserOwner;
+            // --- END OF NEW PERMISSION LOGIC ---
 
             if (record.isRecurring) {
-                cell.classList.add('cursor-pointer');
-                cell.onclick = () => showRecurringChoiceModal(record.id, record.fields.SeriesID);
+                const seriesId = record.fields.SeriesID;
+                const recordDateStr = record.fields.Date;
+                const iconColorClass = record.fields.BookingReason === 'Coverage' ? 'text-gray-300 hover:text-white' : 'text-gray-500';
+                
+                // For recurring bookings, the icon is always visible. The permission check happens inside the modal.
+                actionsHTML = `<div class="booking-actions absolute top-1 right-1 z-10"><span class="material-symbols-outlined ${iconColorClass} cursor-pointer" style="font-size: 20px;" onclick="showRecurringChoiceModal('${record.id}', '${seriesId}', '${recordDateStr}')" title="Recurring Event">event_repeat</span></div>`;
+            
+            } else if (canModify) { // Only show edit/delete buttons if the user has permission
+                 const iconColorClass = record.fields.BookingReason === 'Coverage' ? 'text-gray-300 hover:text-white' : 'text-gray-600';
+                actionsHTML = `<div class="booking-actions absolute top-1 right-1 flex items-center gap-1 sm:gap-2 z-10">
+                                   <span class="material-symbols-outlined edit-btn ${iconColorClass} hover:text-gray-900 cursor-pointer" data-record-id="${record.id}" title="Edit Booking">edit</span>
+                                   <span class="material-symbols-outlined cancel-btn ${iconColorClass} hover:text-red-600 cursor-pointer" data-record-id="${record.id}" title="Cancel Booking">delete</span>
+                               </div>`;
             }
+            
+            cell.onclick = null;
 
             if (bookingReason === "Closed") {
                 cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-red-100 text-red-800`;
@@ -804,7 +925,24 @@ function renderBookings(bookings) {
                 } else {
                     cell.innerHTML = `<div class="flex items-center justify-center h-full"><span class="material-symbols-outlined text-red-300" style="font-size: 24px;">arrow_cool_down</span></div>`;
                 }
-            } else {
+            } 
+            else if (bookingReason === "Coverage") {
+                cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative coverage-cell`;
+                if (isCurrentDay) cell.classList.add('current-day');
+                if (isFirstCell) {
+                    cell.innerHTML = `
+                        ${actionsHTML}
+                        <div class="flex flex-col items-center justify-center h-full text-center gap-1">
+                            <span class="material-symbols-outlined text-3xl">chat_bubble</span>
+                            <strong class="font-semibold block text-xs sm:text-sm leading-tight">Taylor in Port. 1</strong>
+                            <small class="text-xs block leading-tight contact-text">Contact to book this period</small>
+                        </div>
+                    `;
+                } else {
+                    cell.innerHTML = `<div class="flex items-center justify-center h-full"><span class="material-symbols-outlined text-gray-400" style="font-size: 24px;">arrow_cool_down</span></div>`;
+                }
+            } 
+            else {
                 cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-blue-100 text-blue-800`;
                 if (isCurrentDay) cell.classList.add('current-day');
                 if (isFirstCell) {
@@ -833,21 +971,30 @@ function renderBookings(bookings) {
 
 function generateRecurringInstancesForWeek(rules, weekDates) {
     const instances = [];
-    const weekDateStrings = new Set(weekDates.map(d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', {month: 'numeric', day: 'numeric', year: 'numeric'})));
+    const weekDateStrings = new Set(weekDates.filter(d => d));
 
     rules.forEach(rule => {
-        // For each rule, generate the definitive list of ALL valid dates for the entire year
+        const { EndDate, EndOccurrences, RecurrenceType, RecurrenceDays, SeriesID, Exceptions } = rule.fields;
+        
+        // --- FIX: Create a Set of exception dates for quick lookup ---
+        const exceptionDates = new Set(Exceptions || []);
+
+        if (!SeriesID) return;
+
         const seriesDates = new Set();
         let occurrencesFound = 0;
-        const { EndDate, EndOccurrences, RecurrenceType, RecurrenceDays } = rule.fields;
         const selectedDays = (RecurrenceDays || "").split(',').map(d => parseInt(d));
         const finalDate = EndDate ? new Date(EndDate + 'T23:59:59') : null;
 
-        // Iterate through the entire school calendar from the start
         for (const [dateString, dayType] of sortedCalendar) {
-            const currentDate = new Date(dateString + 'T12:00:00');
+            const dateParts = dateString.split('/');
+            const month = dateParts[0].padStart(2, '0');
+            const day = dateParts[1].padStart(2, '0');
+            const year = dateParts[2];
+            const isoDateString = `${year}-${month}-${day}`;
+            
+            const currentDate = new Date(isoDateString + 'T12:00:00');
 
-            // Stop if we've passed the rule's end date or found enough occurrences
             if (finalDate && currentDate > finalDate) break;
             if (EndOccurrences && occurrencesFound >= EndOccurrences) break;
 
@@ -857,30 +1004,32 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
                     const cycleDay = parseInt(dayType.split(' ')[1]);
                     if (selectedDays.includes(cycleDay)) match = true;
                 } else if (RecurrenceType === 'weekday') {
-                    const dayOfWeek = currentDate.getDay(); // Sunday=0, Monday=1
+                    const dayOfWeek = currentDate.getDay();
                     if (selectedDays.includes(dayOfWeek)) match = true;
                 }
 
                 if (match) {
-                    seriesDates.add(dateString); // Add the valid date string (e.g., "9/2/2025")
-                    occurrencesFound++;
+                    // --- FIX: Only count and add the date if it's NOT an exception ---
+                    if (!exceptionDates.has(isoDateString)) {
+                        seriesDates.add(isoDateString);
+                        occurrencesFound++;
+                    }
                 }
             }
         }
 
-        // Now, check if any of the dates in the current week are in our generated series
-        weekDateStrings.forEach(dateStr => {
-            if (seriesDates.has(dateStr)) {
-                // This date is part of the current week AND a valid recurring date. Create an instance.
+        weekDateStrings.forEach(weekDateStr => {
+            if (seriesDates.has(weekDateStr)) {
                 instances.push({
-                    id: rule.id,
+                    id: `${rule.id}-${weekDateStr}`,
                     isRecurring: true,
                     fields: {
-                        Date: new Date(dateStr).toISOString().split('T')[0],
+                        Date: weekDateStr,
                         StartPeriod: rule.fields.StartPeriod,
                         EndPeriod: rule.fields.EndPeriod,
                         TeacherName: rule.fields.TeacherName,
-                        BookingReason: rule.fields.BookingReason
+                        BookingReason: rule.fields.BookingReason,
+                        SeriesID: SeriesID
                     }
                 });
             }
@@ -1300,58 +1449,108 @@ async function handleRecurringBooking(fields) {
 
     if (seriesDates.length === 0) { return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); }
 
-    // --- Firestore Conflict Check ---
+    // --- NEW CONFLICT DETECTION LOGIC ---
+    const conflictingBookings = [];
     try {
+        // Firestore 'in' queries are limited to 10 items, so we chunk the dates.
+        const dateChunks = [];
         for (let i = 0; i < seriesDateStrings.length; i += 10) {
-            const chunk = seriesDateStrings.slice(i, i + 10);
+            dateChunks.push(seriesDateStrings.slice(i, i + 10));
+        }
+
+        for (const chunk of dateChunks) {
             const conflictSnapshot = await db.collection('bookings').where('Date', 'in', chunk).get();
-            
             if (!conflictSnapshot.empty) {
-                for (const doc of conflictSnapshot.docs) {
+                conflictSnapshot.forEach(doc => {
                     const booking = doc.data();
+                    // Check for period overlap on the conflicting date
                     if (fields.StartPeriod <= (booking.EndPeriod || booking.StartPeriod) && fields.EndPeriod >= booking.StartPeriod) {
-                        // THIS ALERT IS NOW REPLACED
-                        showNotificationModal(`The time slot is already taken on ${booking.Date}. Please select a different time or date.`, 'error', 'Booking Conflict');
-                        return;
+                        conflictingBookings.push({ id: doc.id, ...booking });
                     }
-                }
+                });
             }
         }
     } catch (error) {
         console.error("Error checking for conflicts:", error);
-        // THIS ALERT IS NOW REPLACED
         showNotificationModal("Could not check for booking conflicts. Please try again.", 'error');
         return;
     }
     
-    // --- Firestore Batched Write ---
-    const batch = db.batch();
-    const seriesId = `series-${Date.now()}`;
+    // --- NEW OVERRIDE LOGIC ---
+    if (conflictingBookings.length > 0) {
+        const isUserAdmin = ADMIN_EMAILS.includes(auth.currentUser.email.toLowerCase());
 
+        if (isUserAdmin) {
+            // If the user is an admin, show a confirmation modal with details.
+            const conflictMessages = conflictingBookings.map(b => 
+                `• ${b.Date}: ${b.TeacherName} (P${b.StartPeriod}${b.EndPeriod && b.EndPeriod !== b.StartPeriod ? '-' + b.EndPeriod : ''})`
+            ).join('\n');
+            
+            const confirmed = await showConfirmationModal({
+                title: 'Confirm Override',
+                message: `This action will override and delete the following ${conflictingBookings.length} booking(s):\n\n${conflictMessages}\n\nDo you want to proceed?`,
+                icon: 'warning',
+                confirmText: 'Yes, Override',
+                cancelText: 'Cancel'
+            });
+
+            if (!confirmed) {
+                return; // Admin chose not to override, so we stop here.
+            }
+            // If confirmed, the function continues to the batch commit below.
+
+        } else {
+            // If not an admin, show the original error message and stop.
+            const firstConflict = conflictingBookings[0];
+            showNotificationModal(`The time slot is already taken on ${firstConflict.Date}. Please select a different time or date.`, 'error', 'Booking Conflict');
+            return;
+        }
+    }
+    
+    const batch = db.batch();
+    
+    // 1. (IF ADMIN OVERRIDE) Add conflicting bookings to the batch for deletion.
+    conflictingBookings.forEach(conflict => {
+        const docRef = db.collection('bookings').doc(conflict.id);
+        batch.delete(docRef);
+    });
+    
     const masterRecordRef = db.collection('recurring_bookings').doc();
+    const uniqueSeriesId = masterRecordRef.id;
+
     const masterRecordFields = {
         TeacherName: fields.TeacherName, StartPeriod: fields.StartPeriod, EndPeriod: fields.EndPeriod,
         BookingReason: fields.BookingReason, RecurrenceType: type, RecurrenceDays: selectedDays.join(','),
-        SeriesID: seriesId, userEmail: auth.currentUser.email
+        SeriesID: uniqueSeriesId,
+        userEmail: auth.currentUser.email
     };
+
     if (endType === 'on-date') {
-        masterRecordFields.EndDate = endDate.toISOString().split('T')[0];
+        masterRecordFields.EndDate = recurrenceEndDate.value;
     } else {
         masterRecordFields.EndOccurrences = maxOccurrences;
     }
     batch.set(masterRecordRef, masterRecordFields);
 
+    // 2. Add the new recurring bookings to the batch.
     seriesDates.forEach(date => {
         const instanceRef = db.collection('bookings').doc();
         batch.set(instanceRef, {
             ...fields, Date: date.toISOString().split('T')[0],
-            SeriesID: seriesId, userEmail: auth.currentUser.email
+            SeriesID: uniqueSeriesId,
+            userEmail: auth.currentUser.email
         });
     });
 
     try {
         await batch.commit();
-        showNotificationModal(`Successfully created ${seriesDates.length} recurring bookings.`, 'success');
+        
+        let successMessage = `Successfully created ${seriesDates.length} recurring bookings.`;
+        if (conflictingBookings.length > 0) {
+            successMessage += ` ${conflictingBookings.length} conflicting booking(s) were overridden.`;
+        }
+        showNotificationModal(successMessage, 'success');
+        
         hideBookingModal();
         loadScheduleForSelectedDate();
         await sendNotificationEmail('created', { ...fields, isRecurring: true, RecurrenceType: type, RecurrenceDays: selectedDays });
@@ -1386,7 +1585,8 @@ async function openManageRecurringPanel(recordIdToHighlight = null) {
             li.className = 'p-4 flex justify-between items-start transition-colors duration-300';
             
             let daysText = RecurrenceType === 'cycle' ? `Cycle Days: ${RecurrenceDays}` : `Weekdays: ${RecurrenceDays.split(',').map(d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(', ')}`;
-            let endText = EndDate ? `until ${new Date(EndDate).toLocaleDateString()}` : `for ${EndOccurrences} occurrences`;
+            // --- FIX: Ensure EndDate is handled correctly ---
+            let endText = EndDate ? `until ${new Date(EndDate + 'T12:00:00').toLocaleDateString()}` : `for ${EndOccurrences} occurrences`;
             
             li.innerHTML = `
                 <div>
@@ -1395,7 +1595,8 @@ async function openManageRecurringPanel(recordIdToHighlight = null) {
                     <div class="text-sm text-gray-500">${daysText} ${endText}</div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors" onclick="editRecurringSeries('${SeriesID}')" title="Edit Series">
+                    <!-- FIX: Pass the unique document ID (record.id) instead of SeriesID -->
+                    <button class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors" onclick="editRecurringSeries('${record.id}')" title="Edit Series">
                         <span class="material-symbols-outlined">edit</span>
                     </button>
                     <button class="text-red-600 hover:text-red-800 p-1 rounded transition-colors" onclick="deleteRecurringSeries('${record.id}')" title="Delete Series">
@@ -1407,10 +1608,6 @@ async function openManageRecurringPanel(recordIdToHighlight = null) {
         });
         
         recurringList.appendChild(listContainer);
-
-        if (recordIdToHighlight) {
-            // Highlighting logic remains the same
-        }
         
     } catch (error) {
         console.error('Error loading recurring bookings:', error);
@@ -1419,25 +1616,33 @@ async function openManageRecurringPanel(recordIdToHighlight = null) {
 }
 
 // New function to handle editing from the manage panel
-function editRecurringSeries(seriesId) {
+function editRecurringSeries(masterRecordId) {
     manageRecurringModal.classList.add('hidden');
-    showEditRecurringModal(seriesId);
+    showEditRecurringModal(masterRecordId);
 }
 
 async function deleteRecurringSeries(recordId) {
     const confirmed = await showConfirmationModal({
         title: 'Confirm Deletion',
-        message: 'Are you sure you want to delete this entire recurring series and all its future bookings? This action cannot be undone.'
+        message: 'Are you sure you want to delete all future occurrences of this recurring series? Past bookings will remain. This cannot be undone.'
     });
     if (!confirmed) return;
-    
+
     try {
+        if (!recordId) {
+            throw new Error('Master recurring record ID was not provided.');
+        }
+
         const masterDoc = await db.collection('recurring_bookings').doc(recordId).get();
         if (!masterDoc.exists) throw new Error('Master recurring record not found.');
+
         const masterData = masterDoc.data();
         const seriesId = masterData.SeriesID;
-        if (!seriesId) throw new Error('Cannot delete: This booking is missing its Series ID.');
-        
+
+        if (!seriesId) {
+            throw new Error('Cannot delete: This booking is missing its Series ID.');
+        }
+
         const todayStr = new Date().toISOString().split('T')[0];
         const bookingsToDeleteSnapshot = await db.collection('bookings')
             .where('SeriesID', '==', seriesId)
@@ -1445,18 +1650,34 @@ async function deleteRecurringSeries(recordId) {
             .get();
 
         const batch = db.batch();
+
         bookingsToDeleteSnapshot.forEach(doc => {
             batch.delete(doc.ref);
         });
-        batch.delete(masterDoc.ref);
+
+        // --- CHANGE IS HERE ---
+        // Instead of deleting the master record, we update it to end "yesterday".
+        // This preserves the rule for past events while stopping future ones.
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        // Update the master record to end yesterday and remove any occurrence count.
+        batch.update(masterDoc.ref, {
+            EndDate: yesterdayStr,
+            EndOccurrences: firebase.firestore.FieldValue.delete()
+        });
+        // --- END OF CHANGE ---
 
         await batch.commit();
-        
-        showNotificationModal(`Recurring series deleted successfully. ${bookingsToDeleteSnapshot.size} future bookings were removed.`, 'success');
+
+        showNotificationModal(`Future recurring bookings deleted successfully. ${bookingsToDeleteSnapshot.size} bookings were removed.`, 'success');
         manageRecurringModal.classList.add('hidden');
         loadScheduleForSelectedDate();
+        // Send a notification that the series was modified (not entirely deleted)
         await sendNotificationEmail('series_deleted', masterData);
-        
+
     } catch (error) {
         console.error('Error deleting recurring series:', error);
         showNotificationModal(`Error deleting recurring series: ${error.message}`, 'error');
@@ -1495,68 +1716,112 @@ function toggleEndCondition() {
     occurrencesContainer.classList.toggle('hidden', !endTypeAfter.checked);
 }
 
-const OriginalDate = Date;
-Date = class extends OriginalDate {
-    constructor(...args) {
-        if (args.length === 0) {
-            // When new Date() is called with no arguments, return our fake date
-            return new OriginalDate('2025-09-02T12:00:00');
-        }
-        return new OriginalDate(...args);
+function showRecurringChoiceModal(recordId, seriesId, dateString) {
+    // --- START OF FIX ---
+    // Check for admin permissions at the beginning of the function.
+    const user = auth.currentUser;
+    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        // If the user is not an admin, show a notification and stop.
+        showNotificationModal("This is a recurring booking. You do not have permission to modify it. Please contact an administrator.", 'info', 'Permission Denied');
+        return; 
+    }
+    // --- END OF FIX ---
+
+    const modal = document.getElementById('recurring-choice-modal');
+
+    if (!dateString) {
+        console.error("showRecurringChoiceModal was called without a dateString.");
+        showNotificationModal("An error occurred. Could not determine which event to modify.", 'error');
+        return;
     }
     
-    static now() {
-        return new OriginalDate('2025-09-02T12:00:00').getTime();
-    }
-};
-
-async function handleRecurringIconClick(seriesId) {
-    const user = auth.currentUser;
-    if (user && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-        try {
-            const snapshot = await db.collection('recurring_bookings').where('SeriesID', '==', seriesId).limit(1).get();
-            if (snapshot.empty) {
-                throw new Error("Could not find the master record for this recurring series.");
-            }
-            const masterRecordId = snapshot.docs[0].id;
-            openManageRecurringPanel(masterRecordId);
-        } catch (error) {
-            console.error(error);
-            showNotificationModal(error.message, 'error');
-        }
-    } else {
-        showNotificationModal("This is a recurring booking. You do not have permission to modify it. Please contact an administrator.", 'info', 'Permission Denied');
-    }
-}
-
-function showRecurringChoiceModal(recordId, seriesId) {
-    const modal = document.getElementById('recurring-choice-modal');
     modal.classList.remove('hidden');
     
-    // Pass the IDs to the buttons
-    document.getElementById('edit-one-event-btn').onclick = () => {
-        modal.classList.add('hidden');
-        showEditModal(recordId, true); // Pass a flag indicating it's a detached recurring event
-    };
+    const modalContent = modal.querySelector('.modal-content');
+    
+    // This is the key change: A generated instance has a composite ID like "MasterID-DateString".
+    // A real booking has a standard Firestore ID without a hyphen.
+    const isGeneratedInstance = recordId.includes('-');
+
+    if (isGeneratedInstance) {
+        // For generated instances that don't exist in the 'bookings' collection yet.
+        // The user can delete this one occurrence (which creates an exception) or edit the whole series.
+        modalContent.innerHTML = `
+            <div class="flex items-center gap-3 mb-5">
+                <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Recurring Event Options</h2>
+            </div>
+            <p class="text-gray-600 mb-6 leading-relaxed mb-3">This is an occurrence of a recurring series. You can delete it or edit the entire series.</p>
+            <div class="modal-buttons flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                <button type="button" id="cancel-choice-btn" class="btn-large order-3 sm:order-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 order-1 sm:order-2">
+                    <button id="delete-one-occurrence-btn" class="btn-large px-5 py-3 font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+                        Delete This One
+                    </button>
+                    <button id="edit-series-btn" class="btn-large px-5 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+                        Edit Entire Series
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        // For actual bookings in the database that are part of a series.
+        modalContent.innerHTML = `
+            <div class="flex items-center gap-3 mb-5">
+                <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Edit Recurring Booking</h2>
+            </div>
+            <p class="text-gray-600 mb-6 leading-relaxed mb-3">This booking is part of a recurring series. Would you like to edit only this specific event, or modify the entire recurring series?</p>
+            <div class="modal-buttons flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                <button type="button" id="cancel-choice-btn" class="btn-large order-3 sm:order-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 order-1 sm:order-2">
+                    <button type="button" id="edit-one-event-btn" class="btn-large px-5 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
+                        This One Event
+                    </button>
+                    <button type="button" id="edit-series-btn" class="btn-large px-5 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+                        The Entire Series
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add event listeners based on which modal was displayed
+    if (isGeneratedInstance) {
+        document.getElementById('delete-one-occurrence-btn').onclick = () => {
+            modal.classList.add('hidden');
+            deleteRecurringOccurrence(seriesId, dateString);
+        };
+    } else {
+        document.getElementById('edit-one-event-btn').onclick = () => {
+            modal.classList.add('hidden');
+            showEditModal(recordId, true);
+        };
+    }
     
     document.getElementById('edit-series-btn').onclick = () => {
         modal.classList.add('hidden');
         showEditRecurringModal(seriesId);
     };
+    
+    document.getElementById('cancel-choice-btn').onclick = () => {
+        modal.classList.add('hidden');
+    };
 }
 
-async function showEditRecurringModal(seriesId) {
+async function showEditRecurringModal(masterRecordId) {
     const modal = document.getElementById('edit-recurring-modal');
     const form = document.getElementById('edit-recurring-form');
     form.reset();
-    form.dataset.seriesId = seriesId;
-
+    
     try {
-        const snapshot = await db.collection('recurring_bookings').where('SeriesID', '==', seriesId).limit(1).get();
-        if (snapshot.empty) throw new Error("Could not find the master record for this series.");
+        const masterDocRef = db.collection('recurring_bookings').doc(masterRecordId);
+        const masterDoc = await masterDocRef.get();
+        if (!masterDoc.exists) throw new Error("Could not find the master record for this series.");
         
-        const masterRecord = snapshot.docs[0].data();
-        form.dataset.masterRecordId = snapshot.docs[0].id;
+        const masterRecord = masterDoc.data();
+        form.dataset.masterRecordId = masterRecordId;
+        form.dataset.seriesId = masterRecord.SeriesID; // Keep seriesId for updating instances
         
         if (masterRecord.EndDate) {
             document.getElementById('edit-end-type-on-date').checked = true;
@@ -1694,6 +1959,84 @@ async function handleRecurringUpdate(event) {
     } finally {
         submitButton.textContent = 'Save Changes';
         submitButton.disabled = false;
+    }
+}
+
+async function deleteRecurringOccurrence(seriesId, dateString) {
+    // --- START OF FIX ---
+    // Manually parse the date string to avoid timezone errors.
+    // This is the most reliable way to create a date object.
+    const dateParts = dateString.split('-'); // e.g., ["2025", "09", "10"]
+    const localDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // Month is 0-indexed
+    
+    const displayDate = localDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    // --- END OF FIX ---
+
+    const confirmed = await showConfirmationModal({
+        title: 'Delete This Occurrence',
+        // Use the reliably formatted displayDate in the message
+        message: `Are you sure you want to delete the recurring event on ${displayDate}? This will not affect other occurrences in the series.`,
+        icon: 'delete',
+        confirmText: 'Yes, Delete This Occurrence',
+        cancelText: 'Cancel'
+    });
+    
+    if (!confirmed) return;
+
+    try {
+        const recurringSnapshot = await db.collection('recurring_bookings')
+            .where('SeriesID', '==', seriesId)
+            .limit(1)
+            .get();
+
+        if (recurringSnapshot.empty) {
+            throw new Error('Recurring series not found.');
+        }
+
+        const masterDoc = recurringSnapshot.docs[0];
+        const masterData = masterDoc.data();
+        
+        const currentExceptions = masterData.Exceptions || [];
+        
+        if (!currentExceptions.includes(dateString)) {
+            currentExceptions.push(dateString);
+            
+            await masterDoc.ref.update({
+                Exceptions: currentExceptions
+            });
+            
+            const individualBookingsSnapshot = await db.collection('bookings')
+                .where('SeriesID', '==', seriesId)
+                .where('Date', '==', dateString)
+                .get();
+                
+            const batch = db.batch();
+            individualBookingsSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            if (!individualBookingsSnapshot.empty) {
+                await batch.commit();
+            }
+            
+            showNotificationModal('Recurring event occurrence deleted successfully.', 'success', 'Occurrence Deleted');
+            loadScheduleForSelectedDate(); 
+            
+            await sendNotificationEmail('deleted', {
+                ...masterData,
+                Date: dateString
+            });
+        } else {
+            showNotificationModal('This occurrence has already been deleted.', 'info', 'Already Deleted');
+        }
+
+    } catch (error) {
+        console.error('Error deleting recurring occurrence:', error);
+        showNotificationModal(`Error deleting occurrence: ${error.message}`, 'error', 'Delete Failed');
     }
 }
 
