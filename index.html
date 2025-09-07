@@ -40,6 +40,22 @@
             .schedule-grid .grid-header:not(.current-day-header):not(:first-child),
             .schedule-grid .grid-cell:not(.current-day) { display: none; }
             .schedule-grid { grid-template-columns: auto 1fr !important; gap: 8px !important; }
+            #schedule-grid {
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            .animate-pulse {
+                animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.3;
+                }
+            }
             .grid-cell { min-height: 70px !important; padding: 14px !important; font-size: 16px !important; }
             .grid-header { padding: 14px !important; font-size: 18px !important; }
             .grid-label { padding: 14px 10px !important; font-size: 16px !important; min-width: 100px; }

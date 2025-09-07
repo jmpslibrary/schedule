@@ -232,6 +232,7 @@ function initializeApp() {
     populateDayCheckboxes();
     fetchAndDisplayBanner();
     setupEmailNotifications();
+    setupSwipeNavigation();
 
     datePicker.value = new Date().toISOString().split('T')[0];
     loadScheduleForSelectedDate();
@@ -282,6 +283,49 @@ function initializeApp() {
 
     // Notification modal listener
     notificationOkBtn.addEventListener('click', () => notificationModal.classList.add('hidden'));
+}
+
+function setupSwipeNavigation() {
+    // The main content area is a good target for swipe detection.
+    const swipeTarget = document.getElementById('app-content');
+    let touchstartX = 0;
+    let touchendX = 0;
+    let touchstartY = 0;
+    let touchendY = 0;
+    const swipeThreshold = 50; // Minimum pixel distance to be considered a swipe.
+
+    swipeTarget.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+    }, { passive: true }); // Use passive listener for better scroll performance.
+
+    swipeTarget.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        touchendY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const deltaX = touchendX - touchstartX;
+        const deltaY = touchendY - touchstartY;
+
+        // We only want to trigger a swipe if the horizontal movement
+        // is greater than the vertical movement (to avoid interfering with scrolling).
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            
+            // Check if the horizontal swipe distance meets our minimum threshold.
+            if (Math.abs(deltaX) >= swipeThreshold) {
+                if (touchendX < touchstartX) {
+                    // If the touch ends to the left of where it started, it's a "next" swipe.
+                    navigateDays('next');
+                }
+                if (touchendX > touchstartX) {
+                    // If the touch ends to the right, it's a "previous" swipe.
+                    navigateDays('prev');
+                }
+            }
+        }
+    }
 }
 
 // --- New Email Notification Logic ---
@@ -854,13 +898,70 @@ async function fetchAndPopulateBookings() {
             allBookingsForWeek.push(...recurringInstances);
         }
         
-        resetGridToAvailable(allBookingsForWeek);
+        // CHANGED: Do both operations together while invisible
+        resetGridToAvailableWithoutFlash(allBookingsForWeek);
         renderBookings(allBookingsForWeek);
 
     } catch (error) {
         console.error("Error fetching and populating bookings:", error);
-        resetGridToAvailable(); 
+        resetGridToAvailableWithoutFlash(); 
     }
+}
+
+function resetGridToAvailableWithoutFlash(bookings = []) {
+    const selectedDate = new Date(datePicker.value + 'T12:00:00');
+    const selectedDateString = selectedDate.toLocaleDateString();
+
+    // Create a Set of booked cells for quick lookup
+    const bookedCells = new Set();
+    bookings.forEach(record => {
+        const startPeriod = record.fields.StartPeriod;
+        const endPeriod = record.fields.EndPeriod || startPeriod;
+        const recordDate = new Date(record.fields.Date + 'T12:00:00');
+
+        const columnIndex = currentWeekDates.findIndex(d =>
+            new Date(d + 'T12:00:00').toLocaleDateString() === recordDate.toLocaleDateString()
+        );
+        if (columnIndex === -1) return;
+
+        const columnNumber = columnIndex + 1;
+        for (let p = startPeriod; p <= endPeriod; p++) {
+            bookedCells.add(`D${columnNumber}-P${p}`);
+        }
+    });
+
+    document.querySelectorAll('.grid-cell').forEach(cell => {
+        const [_, day, period] = cell.id.match(/D(\d+)-P(\d+)/);
+        
+        // Reset to base classes
+        cell.className = `grid-cell D${day} p-1 sm:p-2 text-center min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs border-b border-solid border-gray-200 sm:text-sm`;
+
+        const dateStringForThisCell = currentWeekDates[day - 1];
+        if (dateStringForThisCell) {
+            const dateForThisCell = new Date(dateStringForThisCell + 'T12:00:00');
+            const mdyFormat = (dateForThisCell.getMonth() + 1) + '/' + dateForThisCell.getDate() + '/' + dateForThisCell.getFullYear();
+            const dayType = SCHOOL_CALENDAR[mdyFormat];
+
+            // Only set up available cells if they're not going to be overwritten by bookings
+            if (dayType && dayType.startsWith("Day") && !bookedCells.has(cell.id)) {
+                cell.classList.add('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
+                cell.innerHTML = 'Available';
+                cell.onclick = () => showBookingModal(day, period, dateStringForThisCell);
+            } else if (!bookedCells.has(cell.id)) {
+                cell.classList.add('bg-gray-100', 'text-gray-500');
+                cell.innerHTML = dayType || '';
+                cell.onclick = null;
+            }
+
+            if (dateForThisCell.toLocaleDateString() === selectedDateString) {
+                cell.classList.add('current-day');
+            }
+        } else {
+            cell.classList.add('bg-gray-100');
+            cell.innerHTML = '';
+            cell.onclick = null;
+        }
+    });
 }
 
 function renderBookings(bookings) {
@@ -1172,19 +1273,245 @@ function updateTodayButtonVisibility() {
     todayBtn.classList.toggle('hidden', !shouldShow);
 }
 
-// Modified loadScheduleForSelectedDate function - add the Today button visibility update
-function loadScheduleForSelectedDate() {
-    const selectedDate = new Date(datePicker.value);
-    const timezoneOffset = selectedDate.getTimezoneOffset() * 60000;
-    const adjustedDate = new Date(selectedDate.getTime() + timezoneOffset);
-    const mdyFormat =
-        (adjustedDate.getMonth() + 1) + '/' +
-        adjustedDate.getDate() + '/' +
-        adjustedDate.getFullYear();
 
-    updateDayInfo(mdyFormat);          // updates headers, labels, mobile title, etc.
-    updateTodayButtonVisibility();     // NEW: keep the Today button logic in sync
-    fetchAndPopulateBookings();        // draws available + existing bookings
+async function loadScheduleForSelectedDate() {
+    showLoadingState();
+    // Add a tiny delay to ensure the browser has time to render the loading state
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    try {
+        const selectedDate = new Date(datePicker.value);
+        const timezoneOffset = selectedDate.getTimezoneOffset() * 60000;
+        const adjustedDate = new Date(selectedDate.getTime() + timezoneOffset);
+        const mdyFormat = (adjustedDate.getMonth() + 1) + '/' + adjustedDate.getDate() + '/' + adjustedDate.getFullYear();
+    
+        const weekDates = getWeekDateInfo(mdyFormat);
+        currentWeekDates = weekDates.map(d => d ? new Date(d).toISOString().split('T')[0] : null);
+    
+        await fetchAndRenderComplete(mdyFormat);
+    
+        updateTodayButtonVisibility();
+    } catch (error) {
+        console.error("Error loading schedule:", error);
+        // Optionally, display an error message in the UI
+    } finally {
+        hideLoadingState();
+    }
+}
+
+async function fetchAndRenderComplete(dateString) {
+    try {
+        const validDates = currentWeekDates.filter(d => d);
+        let allBookingsForWeek = [];
+
+        if (validDates.length > 0) {
+            // Fetch individual bookings
+            const bookingsSnapshot = await db.collection('bookings')
+                                             .where('Date', 'in', validDates)
+                                             .get();
+
+            bookingsSnapshot.forEach(doc => {
+                const bookingData = doc.data();
+                const record = {
+                    id: doc.id,
+                    fields: bookingData,
+                    isRecurring: !!bookingData.SeriesID
+                };
+                allBookingsForWeek.push(record);
+            });
+
+            // Fetch and generate recurring booking instances
+            const recurringSnapshot = await db.collection('recurring_bookings').get();
+            const recurringInstances = generateRecurringInstancesForWeek(
+                recurringSnapshot.docs.map(doc => ({ id: doc.id, fields: doc.data() })),
+                validDates
+            );
+
+            allBookingsForWeek.push(...recurringInstances);
+        }
+        
+        // Now update ALL UI elements at once while invisible
+        updateDayInfoSilent(dateString);
+        resetAndRenderGrid(allBookingsForWeek);
+
+    } catch (error) {
+        console.error("Error fetching and populating bookings:", error);
+        updateDayInfoSilent(dateString);
+        resetAndRenderGrid();
+    }
+}
+
+function resetAndRenderGrid(bookings = []) {
+    const selectedDate = new Date(datePicker.value + 'T12:00:00');
+    const selectedDateString = selectedDate.toLocaleDateString();
+
+    // First pass: reset all cells and set up basic state
+    document.querySelectorAll('.grid-cell').forEach(cell => {
+        const [_, day, period] = cell.id.match(/D(\d+)-P(\d+)/);
+        cell.className = `grid-cell D${day} p-1 sm:p-2 text-center min-h-[40px] sm:min-h-[60px] flex items-center justify-center text-xs border-b border-solid border-gray-200 sm:text-sm`;
+        cell.onclick = null;
+        cell.innerHTML = '';
+
+        const dateStringForThisCell = currentWeekDates[day - 1];
+        if (dateStringForThisCell) {
+            const dateForThisCell = new Date(dateStringForThisCell + 'T12:00:00');
+            const mdyFormat = (dateForThisCell.getMonth() + 1) + '/' + dateForThisCell.getDate() + '/' + dateForThisCell.getFullYear();
+            const dayType = SCHOOL_CALENDAR[mdyFormat];
+
+            if (dayType && dayType.startsWith("Day")) {
+                cell.classList.add('available', 'bg-green-100', 'hover:bg-green-200', 'cursor-pointer', 'text-green-800');
+                cell.innerHTML = 'Available';
+                cell.onclick = () => showBookingModal(day, period, dateStringForThisCell);
+            } else {
+                cell.classList.add('bg-gray-100', 'text-gray-500');
+                cell.innerHTML = dayType || '';
+            }
+
+            if (dateForThisCell.toLocaleDateString() === selectedDateString) {
+                cell.classList.add('current-day');
+            }
+        } else {
+            cell.classList.add('bg-gray-100');
+        }
+    });
+
+    // Second pass: render bookings on top
+    renderBookings(bookings);
+}
+
+// Loading state functions
+function showLoadingState() {
+    // Hide the main grid
+    gridContainer.style.display = 'none';
+    
+    // Create or show loading overlay
+    let loadingOverlay = document.getElementById('schedule-loading');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'schedule-loading';
+        loadingOverlay.className = 'flex flex-col items-center justify-center py-16 px-4 min-h-[600px]';
+        loadingOverlay.innerHTML = `
+            <div class="flex items-center gap-2 mb-4">
+                <span class="animate-pulse text-blue-500 text-2xl">•</span>
+                <span class="animate-pulse text-blue-500 text-2xl" style="animation-delay: 0.2s;">•</span>
+                <span class="animate-pulse text-blue-500 text-2xl" style="animation-delay: 0.4s;">•</span>
+            </div>
+        `;
+        gridContainer.parentNode.insertBefore(loadingOverlay, gridContainer);
+    } else {
+        loadingOverlay.style.display = 'flex';
+    }
+}
+
+function hideLoadingState() {
+    const loadingOverlay = document.getElementById('schedule-loading');
+
+    // If the grid is meant to be hidden (e.g., non-school day), just hide the loading overlay.
+    if (gridContainer.classList.contains('hidden')) {
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        return; // And do nothing else
+    }
+
+    // Show the main grid with smooth transition
+    gridContainer.style.display = 'grid';
+    gridContainer.style.opacity = '0';
+    
+    // Hide loading overlay
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    // Smooth fade in
+    setTimeout(() => {
+        gridContainer.style.opacity = '1';
+    }, 50);
+}
+
+function updateDayInfoSilent(dateString) {
+    // Clear previous highlights
+    document.querySelectorAll('.current-day, .current-day-header').forEach(el => {
+        el.classList.remove('current-day', 'current-day-header');
+    });
+    
+    const weekDates = getWeekDateInfo(dateString);
+
+    // Update desktop headers with actual dates
+    for (let i = 0; i < 5; i++) {
+        const headerDateDiv = document.querySelector(`.grid-header.D${i + 1} .header-date`);
+        if (weekDates[i]) {
+            const d = new Date(weekDates[i]);
+            headerDateDiv.textContent = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+        } else {
+            headerDateDiv.textContent = '';
+        }
+    }
+
+    // Update the header titles with the actual day types from the calendar
+    for (let i = 0; i < 5; i++) {
+        const headerTitleSpan = document.querySelector(`.grid-header.D${i + 1} span`);
+        if (weekDates[i]) {
+            const dayType = SCHOOL_CALENDAR[weekDates[i]];
+            headerTitleSpan.textContent = dayType || `Day ${i + 1}`;
+        } else {
+            headerTitleSpan.textContent = `Day ${i + 1}`;
+        }
+    }
+    
+    const dayType = SCHOOL_CALENDAR[dateString];
+    const selectedDate = new Date(dateString);
+    const selectedDayOfWeek = selectedDate.getDay();
+    
+    if (dayType && dayType.startsWith('Day')) {
+        // This is a valid school day
+        infoBanner.classList.add('hidden');
+        noCurrentDayMobile.classList.add('hidden');
+        gridContainer.classList.remove('hidden');
+        
+        // Map day of week to column index (Monday = 0, Tuesday = 1, etc.)
+        let columnIndex;
+        if (selectedDayOfWeek === 0) { // Sunday
+            columnIndex = -1; // Invalid for school days
+        } else {
+            columnIndex = selectedDayOfWeek - 1; // Monday = 0, Tuesday = 1, etc.
+        }
+        
+        // Add the header highlighting
+        if (columnIndex >= 0 && columnIndex < 5) {
+            const headerElement = document.querySelector(`.grid-header.D${columnIndex + 1}`);
+            if (headerElement) {
+                headerElement.classList.add('current-day-header');
+            }
+        }
+        
+        const dayDate = new Date(dateString);
+        mobileCurrentDayInfo.textContent = `${dayType} - ${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
+
+    } else {
+        // This is NOT a school day
+        gridContainer.classList.add('hidden');
+        noCurrentDayMobile.classList.remove('hidden');
+        mobileCurrentDayInfo.textContent = "Not a school day";
+
+        // Logic for the desktop info banner
+        if (dayType) { // PA Day or Holiday
+            infoBanner.textContent = `The selected day (${dateString}) is a ${dayType}.`;
+            infoBanner.classList.remove('hidden', 'bg-gray-200', 'text-gray-700');
+            infoBanner.classList.add('bg-blue-100', 'text-blue-800');
+        } else { // Weekend or not in calendar
+            infoBanner.textContent = `The selected day (${dateString}) is a weekend or not in the calendar.`;
+            infoBanner.classList.remove('hidden', 'bg-blue-100', 'text-blue-800');
+            infoBanner.classList.add('bg-gray-200', 'text-gray-700');
+        }
+    }
+
+    // Update button states for week navigation
+    const currentIndex = schoolDays.findIndex(entry => entry[0] === dateString);
+    prevWeekBtn.disabled = currentIndex < 5 && currentIndex !== -1;
+    nextWeekBtn.disabled = currentIndex >= schoolDays.length - 5;
+    mobilePrevDay.disabled = currentIndex <= 0;
+    mobileNextDay.disabled = currentIndex >= schoolDays.length - 1;
 }
 
 function getWeekDateInfo(selectedDateString) {
@@ -2123,3 +2450,4 @@ function showConfirmationModal({ title, message, icon = 'delete_forever', confir
         confirmNoBtn.addEventListener('click', handleNo, { once: true });
     });
 }
+
