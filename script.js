@@ -1080,11 +1080,17 @@ function renderBookings(bookings) {
 function generateRecurringInstancesForWeek(rules, weekDates) {
     const instances = [];
     const weekDateStrings = new Set(weekDates.filter(d => d));
+    
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(today.getDate()).padStart(2, '0');
 
     rules.forEach(rule => {
         const { EndDate, EndOccurrences, RecurrenceType, RecurrenceDays, SeriesID, Exceptions } = rule.fields;
         
-        // --- FIX: Create a Set of exception dates for quick lookup ---
+        // Create a Set of exception dates for quick lookup
         const exceptionDates = new Set(Exceptions || []);
 
         if (!SeriesID) return;
@@ -1100,6 +1106,11 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
             const day = dateParts[1].padStart(2, '0');
             const year = dateParts[2];
             const isoDateString = `${year}-${month}-${day}`;
+            
+            // FIXED: Skip past dates - don't generate instances for dates before today
+            if (isoDateString < todayStr) {
+                continue;
+            }
             
             const currentDate = new Date(isoDateString + 'T12:00:00');
 
@@ -1117,7 +1128,7 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
                 }
 
                 if (match) {
-                    // --- FIX: Only count and add the date if it's NOT an exception ---
+                    // Only count and add the date if it's NOT an exception
                     if (!exceptionDates.has(isoDateString)) {
                         seriesDates.add(isoDateString);
                         occurrencesFound++;
@@ -1126,8 +1137,9 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
             }
         }
 
+        // Only generate instances for dates that are in the current week AND not in the past
         weekDateStrings.forEach(weekDateStr => {
-            if (seriesDates.has(weekDateStr)) {
+            if (seriesDates.has(weekDateStr) && weekDateStr >= todayStr) {
                 instances.push({
                     id: `${rule.id}-${weekDateStr}`,
                     isRecurring: true,
@@ -1746,7 +1758,6 @@ async function handleRecurringBooking(fields) {
     } else { // 'after'
         maxOccurrences = parseInt(recurrenceOccurrences.value);
         if (!maxOccurrences || maxOccurrences < 1) { return showNotificationModal('Please enter a valid number of occurrences.', 'error', 'Missing Information'); }
-        // Set a distant future date if no end date is specified
         endDate = new Date();
         endDate.setFullYear(endDate.getFullYear() + 5);
     }
@@ -1756,62 +1767,71 @@ async function handleRecurringBooking(fields) {
     if (dayCheckboxes.length === 0) { return showNotificationModal('Please select at least one day for the recurrence.', 'error', 'Missing Information'); }
     const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
 
-    // --- START: CORRECTED DATE GENERATION LOGIC ---
+    // --- FIXED: MORE ROBUST DATE LOGIC ---
     const seriesDates = [];
     const seriesDateStrings = [];
-    // Use midnight for a reliable start-date comparison
-    const startDate = new Date(fields.Date + 'T00:00:00');
 
-    // Iterate over the pre-sorted list of all calendar entries
+    // Get today's date string in YYYY-MM-DD format for reliable comparison
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(today.getDate()).padStart(2, '0');
+    
+    console.log('Today:', todayStr);
+    console.log('Start date:', fields.Date);
+
+    // Determine the minimum date to use (today or start date, whichever is later)
+    const useStartDate = fields.Date >= todayStr ? fields.Date : todayStr;
+    console.log('Using minimum date:', useStartDate);
+
     for (const [dateString, dayType] of sortedCalendar) {
-        const currentDate = new Date(dateString);
-
-        // This explicitly skips any dates that are before the intended start date of the series.
-        if (currentDate < startDate) {
+        // Convert M/D/YYYY to YYYY-MM-DD for comparison
+        const dateParts = dateString.split('/'); // "9/8/2025" -> ["9", "8", "2025"]
+        const month = dateParts[0].padStart(2, '0');
+        const day = dateParts[1].padStart(2, '0');
+        const year = dateParts[2];
+        const isoDateString = `${year}-${month}-${day}`;
+        
+        // Skip dates before our minimum date
+        if (isoDateString < useStartDate) {
             continue;
         }
+        
+        // Create Date object for other comparisons
+        const currentDate = new Date(isoDateString + 'T12:00:00');
 
-        // Stop if we have found enough occurrences
-        if (maxOccurrences && seriesDates.length >= maxOccurrences) {
-            break;
-        }
+        // Check occurrence limit
+        if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
+        
+        // Check end date
+        if (endDate && currentDate > endDate) break;
 
-        // Stop if the calendar date is past the designated end date
-        if (endDate && currentDate > endDate) {
-            break;
-        }
-
-        // If the entry is a school day, check if it matches the recurrence pattern
+        // Only process school days
         if (dayType && dayType.startsWith('Day')) {
             let match = false;
             if (type === 'cycle') {
                 const cycleDay = parseInt(dayType.split(' ')[1]);
-                if (selectedDays.includes(cycleDay)) {
-                    match = true;
-                }
+                if (selectedDays.includes(cycleDay)) match = true;
             } else if (type === 'weekday') {
-                const dayOfWeek = currentDate.getDay(); // Sunday is 0, Monday is 1, etc.
-                if (selectedDays.includes(dayOfWeek)) {
-                    match = true;
-                }
+                const dayOfWeek = currentDate.getDay();
+                if (selectedDays.includes(dayOfWeek)) match = true;
             }
 
-            // If it matches, add it to our list of dates to create
             if (match) {
-                seriesDates.push(new Date(currentDate));
-                seriesDateStrings.push(new Date(currentDate).toISOString().split('T')[0]);
+                console.log('Adding date:', isoDateString, 'Day type:', dayType);
+                seriesDates.push(currentDate);
+                seriesDateStrings.push(isoDateString);
             }
         }
     }
-    // --- END: CORRECTED DATE GENERATION LOGIC ---
+    // --- END: FIXED DATE LOGIC ---
 
+    console.log('Final series dates:', seriesDateStrings);
 
     if (seriesDates.length === 0) { return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); }
 
-    // --- NEW CONFLICT DETECTION LOGIC ---
     const conflictingBookings = [];
     try {
-        // Firestore 'in' queries are limited to 10 items, so we chunk the dates.
         const dateChunks = [];
         for (let i = 0; i < seriesDateStrings.length; i += 10) {
             dateChunks.push(seriesDateStrings.slice(i, i + 10));
@@ -1822,7 +1842,6 @@ async function handleRecurringBooking(fields) {
             if (!conflictSnapshot.empty) {
                 conflictSnapshot.forEach(doc => {
                     const booking = doc.data();
-                    // Check for period overlap on the conflicting date
                     if (fields.StartPeriod <= (booking.EndPeriod || booking.StartPeriod) && fields.EndPeriod >= booking.StartPeriod) {
                         conflictingBookings.push({ id: doc.id, ...booking });
                     }
@@ -1835,12 +1854,10 @@ async function handleRecurringBooking(fields) {
         return;
     }
 
-    // --- NEW OVERRIDE LOGIC ---
     if (conflictingBookings.length > 0) {
         const isUserAdmin = ADMIN_EMAILS.includes(auth.currentUser.email.toLowerCase());
 
         if (isUserAdmin) {
-            // If the user is an admin, show a confirmation modal with details.
             const conflictMessages = conflictingBookings.map(b =>
                 `• ${b.Date}: ${b.TeacherName} (P${b.StartPeriod}${b.EndPeriod && b.EndPeriod !== b.StartPeriod ? '-' + b.EndPeriod : ''})`
             ).join('\n');
@@ -1853,13 +1870,9 @@ async function handleRecurringBooking(fields) {
                 cancelText: 'Cancel'
             });
 
-            if (!confirmed) {
-                return; // Admin chose not to override, so we stop here.
-            }
-            // If confirmed, the function continues to the batch commit below.
+            if (!confirmed) return;
 
         } else {
-            // If not an admin, show the original error message and stop.
             const firstConflict = conflictingBookings[0];
             showNotificationModal(`The time slot is already taken on ${firstConflict.Date}. Please select a different time or date.`, 'error', 'Booking Conflict');
             return;
@@ -1868,7 +1881,6 @@ async function handleRecurringBooking(fields) {
 
     const batch = db.batch();
 
-    // 1. (IF ADMIN OVERRIDE) Add conflicting bookings to the batch for deletion.
     conflictingBookings.forEach(conflict => {
         const docRef = db.collection('bookings').doc(conflict.id);
         batch.delete(docRef);
@@ -1891,11 +1903,11 @@ async function handleRecurringBooking(fields) {
     }
     batch.set(masterRecordRef, masterRecordFields);
 
-    // 2. Add the new recurring bookings to the batch.
-    seriesDates.forEach(date => {
+    // Use the already-formatted YYYY-MM-DD strings
+    seriesDateStrings.forEach(dateStr => {
         const instanceRef = db.collection('bookings').doc();
         batch.set(instanceRef, {
-            ...fields, Date: date.toISOString().split('T')[0],
+            ...fields, Date: dateStr,
             SeriesID: uniqueSeriesId,
             userEmail: auth.currentUser.email
         });
