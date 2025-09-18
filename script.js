@@ -16,7 +16,8 @@ const EMAILJS_PUBLIC_KEY = 'TiGzJLOUe-bDo0pD5';
 const ADMIN_RECIPIENT_EMAIL = 'taylchri4039@ddsb.ca'; // Your admin email
 
 // --- App Configuration ---
-const ALLOWED_DOMAIN = "ddsb.ca"; 
+const ALLOWED_DOMAINS = ["ddsb.ca"]; 
+const ALLOWED_EMAILS = ["chrisjtaylor@gmail.com"]; // Add this new line
 const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"];
 
 const PERIOD_TIMES = ["8:05 - 8:35", "8:35 - 9:05", "9:05 - 9:35", "9:50 - 10:20", "10:20 - 10:50", "11:50 - 12:20", "12:20 - 12:50", "12:50 - 1:20", "1:35 - 2:05", "2:05 - 2:35"];
@@ -157,10 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             console.log('User signed in:', user.email);
 
-            if (user.email.endsWith('@' + ALLOWED_DOMAIN)) {
+            // 👇 CHANGED: Check if the email ends with ANY of the domains in the array
+            const userEmail = user.email.toLowerCase(); // Standardize to lowercase for reliable matching
+            if (
+                ALLOWED_DOMAINS.some(domain => userEmail.endsWith('@' + domain)) ||
+                ALLOWED_EMAILS.includes(userEmail)
+            ) {
                 // ✅ User has the correct domain
-                loginScreen.style.display = 'none'; // 👈 CHANGED
-                mainApp.style.display = 'block';    // 👈 CHANGED
+                loginScreen.style.display = 'none';
+                mainApp.style.display = 'block';
 
                 appContent.classList.remove('hidden');
                 userInfo.classList.remove('hidden');
@@ -189,9 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } else {
-                // ❌ User has the wrong domain
+                // ❌ User is not allowed
+                // 👇 CHANGED: Updated the error message
                 showNotificationModal(
-                    "You must use a @" + ALLOWED_DOMAIN + " Google account to sign in.",
+                    "You must use an approved school domain or a specifically authorized email address to sign in.",
                     'error',
                     'Access Denied'
                 );
@@ -1739,40 +1746,65 @@ async function handleRecurringBooking(fields) {
     } else { // 'after'
         maxOccurrences = parseInt(recurrenceOccurrences.value);
         if (!maxOccurrences || maxOccurrences < 1) { return showNotificationModal('Please enter a valid number of occurrences.', 'error', 'Missing Information'); }
+        // Set a distant future date if no end date is specified
         endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + 5); 
+        endDate.setFullYear(endDate.getFullYear() + 5);
     }
-    
+
     const daySelector = type === 'cycle' ? '#cycle-day-options input:checked' : '#weekday-options input:checked';
     const dayCheckboxes = document.querySelectorAll(daySelector);
     if (dayCheckboxes.length === 0) { return showNotificationModal('Please select at least one day for the recurrence.', 'error', 'Missing Information'); }
     const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
 
+    // --- START: CORRECTED DATE GENERATION LOGIC ---
     const seriesDates = [];
     const seriesDateStrings = [];
-    let currentDate = new Date(fields.Date + 'T12:00:00');
+    // Use midnight for a reliable start-date comparison
+    const startDate = new Date(fields.Date + 'T00:00:00');
 
-    while (currentDate <= endDate && (!maxOccurrences || seriesDates.length < maxOccurrences)) {
-        const mdyFormat = (currentDate.getMonth() + 1) + '/' + currentDate.getDate() + '/' + currentDate.getFullYear();
-        const calendarEntry = SCHOOL_CALENDAR[mdyFormat];
-        
-        if (calendarEntry && calendarEntry.startsWith('Day')) {
+    // Iterate over the pre-sorted list of all calendar entries
+    for (const [dateString, dayType] of sortedCalendar) {
+        const currentDate = new Date(dateString);
+
+        // This explicitly skips any dates that are before the intended start date of the series.
+        if (currentDate < startDate) {
+            continue;
+        }
+
+        // Stop if we have found enough occurrences
+        if (maxOccurrences && seriesDates.length >= maxOccurrences) {
+            break;
+        }
+
+        // Stop if the calendar date is past the designated end date
+        if (endDate && currentDate > endDate) {
+            break;
+        }
+
+        // If the entry is a school day, check if it matches the recurrence pattern
+        if (dayType && dayType.startsWith('Day')) {
+            let match = false;
             if (type === 'cycle') {
-                const cycleDay = parseInt(calendarEntry.split(' ')[1]);
+                const cycleDay = parseInt(dayType.split(' ')[1]);
                 if (selectedDays.includes(cycleDay)) {
-                    seriesDates.push(new Date(currentDate));
-                    seriesDateStrings.push(new Date(currentDate).toISOString().split('T')[0]);
+                    match = true;
                 }
             } else if (type === 'weekday') {
-                const dayOfWeek = currentDate.getDay();
+                const dayOfWeek = currentDate.getDay(); // Sunday is 0, Monday is 1, etc.
                 if (selectedDays.includes(dayOfWeek)) {
-                    seriesDates.push(new Date(currentDate));
-                    seriesDateStrings.push(new Date(currentDate).toISOString().split('T')[0]);
+                    match = true;
                 }
             }
+
+            // If it matches, add it to our list of dates to create
+            if (match) {
+                seriesDates.push(new Date(currentDate));
+                seriesDateStrings.push(new Date(currentDate).toISOString().split('T')[0]);
+            }
         }
-        currentDate.setDate(currentDate.getDate() + 1);
     }
+    // --- END: CORRECTED DATE GENERATION LOGIC ---
+
 
     if (seriesDates.length === 0) { return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); }
 
@@ -1802,17 +1834,17 @@ async function handleRecurringBooking(fields) {
         showNotificationModal("Could not check for booking conflicts. Please try again.", 'error');
         return;
     }
-    
+
     // --- NEW OVERRIDE LOGIC ---
     if (conflictingBookings.length > 0) {
         const isUserAdmin = ADMIN_EMAILS.includes(auth.currentUser.email.toLowerCase());
 
         if (isUserAdmin) {
             // If the user is an admin, show a confirmation modal with details.
-            const conflictMessages = conflictingBookings.map(b => 
+            const conflictMessages = conflictingBookings.map(b =>
                 `• ${b.Date}: ${b.TeacherName} (P${b.StartPeriod}${b.EndPeriod && b.EndPeriod !== b.StartPeriod ? '-' + b.EndPeriod : ''})`
             ).join('\n');
-            
+
             const confirmed = await showConfirmationModal({
                 title: 'Confirm Override',
                 message: `This action will override and delete the following ${conflictingBookings.length} booking(s):\n\n${conflictMessages}\n\nDo you want to proceed?`,
@@ -1833,15 +1865,15 @@ async function handleRecurringBooking(fields) {
             return;
         }
     }
-    
+
     const batch = db.batch();
-    
+
     // 1. (IF ADMIN OVERRIDE) Add conflicting bookings to the batch for deletion.
     conflictingBookings.forEach(conflict => {
         const docRef = db.collection('bookings').doc(conflict.id);
         batch.delete(docRef);
     });
-    
+
     const masterRecordRef = db.collection('recurring_bookings').doc();
     const uniqueSeriesId = masterRecordRef.id;
 
@@ -1871,13 +1903,13 @@ async function handleRecurringBooking(fields) {
 
     try {
         await batch.commit();
-        
+
         let successMessage = `Successfully created ${seriesDates.length} recurring bookings.`;
         if (conflictingBookings.length > 0) {
             successMessage += ` ${conflictingBookings.length} conflicting booking(s) were overridden.`;
         }
         showNotificationModal(successMessage, 'success');
-        
+
         hideBookingModal();
         loadScheduleForSelectedDate();
         await sendNotificationEmail('created', { ...fields, isRecurring: true, RecurrenceType: type, RecurrenceDays: selectedDays });
