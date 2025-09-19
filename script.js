@@ -1042,7 +1042,7 @@ function renderBookings(bookings) {
                         ${actionsHTML}
                         <div class="flex flex-col items-center justify-center h-full text-center gap-1">
                             <span class="material-symbols-outlined text-3xl">chat_bubble</span>
-                            <strong class="font-semibold block text-xs sm:text-sm leading-tight">Taylor in Port. 1</strong>
+                            <strong class="font-semibold block text-xs sm:text-sm leading-tight">Taylor in Portable 1</strong>
                             <small class="text-xs block leading-tight contact-text">Contact to book this period</small>
                         </div>
                     `;
