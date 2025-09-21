@@ -241,7 +241,25 @@ function initializeApp() {
     setupEmailNotifications();
     setupSwipeNavigation();
 
-    datePicker.value = new Date().toISOString().split('T')[0];
+    // Initialize to next school day instead of today
+    const today = new Date();
+    const todayStr = (today.getMonth() + 1) + '/' + today.getDate() + '/' + today.getFullYear();
+    const dayType = SCHOOL_CALENDAR[todayStr];
+    
+    if (dayType && dayType.startsWith('Day')) {
+        // Today is a school day
+        datePicker.value = today.toISOString().split('T')[0];
+    } else {
+        // Today is not a school day, find the next one
+        const nextSchoolDay = findNextSchoolDay();
+        if (nextSchoolDay) {
+            datePicker.value = nextSchoolDay.toISOString().split('T')[0];
+        } else {
+            // Fallback to today
+            datePicker.value = today.toISOString().split('T')[0];
+        }
+    }
+    
     loadScheduleForSelectedDate();
 
     // Core listeners
@@ -1157,7 +1175,7 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
     });
 
     return instances;
-}
+}e
 
 function resetGridToAvailable() {
     const selectedDate = new Date(datePicker.value + 'T12:00:00');
@@ -1257,8 +1275,38 @@ function navigateWeeks(direction) {
 // Jump back to the real “today”
 function jumpToToday() {
     const today = new Date();
-    datePicker.value = today.toISOString().split('T')[0];
+    const todayStr = (today.getMonth() + 1) + '/' + today.getDate() + '/' + today.getFullYear();
+    const dayType = SCHOOL_CALENDAR[todayStr];
+    
+    if (dayType && dayType.startsWith('Day')) {
+        // Today is a school day, use it
+        datePicker.value = today.toISOString().split('T')[0];
+    } else {
+        // Today is not a school day, find the next school day
+        const nextSchoolDay = findNextSchoolDay();
+        if (nextSchoolDay) {
+            datePicker.value = nextSchoolDay.toISOString().split('T')[0];
+        } else {
+            // Fallback to today if no school days found
+            datePicker.value = today.toISOString().split('T')[0];
+        }
+    }
     loadScheduleForSelectedDate();
+}
+function findNextSchoolDay() {
+    const today = new Date();
+    
+    // Look through the sorted school days to find the next one
+    for (const [dateString, dayType] of sortedCalendar) {
+        const schoolDate = new Date(dateString);
+        
+        // If this is a school day and it's today or in the future
+        if (dayType.startsWith('Day') && schoolDate >= today) {
+            return schoolDate;
+        }
+    }
+    
+    return null; // No future school days found
 }
 
 // “Is selected date in the same week as today?” (for desktop behavior)
