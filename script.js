@@ -1504,11 +1504,104 @@ function navigateWeeks(direction) {
         }
     }
 
-    const nextDate = new Date(schoolDays[nextIndex][0]);
-    datePicker.value = nextDate.toISOString().split('T')[0];
+    let targetDate = new Date(schoolDays[nextIndex][0]);
+    
+    // NEW: Adjust if landing on a Holiday or PA Day
+    targetDate = adjustForWeekView(targetDate, direction);
+    
+    datePicker.value = targetDate.toISOString().split('T')[0];
     loadScheduleForSelectedDate();
 }
 
+// NEW FUNCTION: Adjust date if it lands on Holiday/PA Day at start or end of week
+function adjustForWeekView(date, direction) {
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dateStr = (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
+    const dayType = SCHOOL_CALENDAR[dateStr];
+    
+    // If it's Monday (1) and is Holiday/PA Day, jump forward
+    if (dayOfWeek === 1 && (dayType === 'Holiday' || dayType === 'PA Day')) {
+        return findNextSchoolDayInWeek(date, 'forward');
+    }
+    
+    // If it's Friday (5) and is Holiday/PA Day, jump backward
+    if (dayOfWeek === 5 && (dayType === 'Holiday' || dayType === 'PA Day')) {
+        return findNextSchoolDayInWeek(date, 'backward');
+    }
+    
+    // If it's a valid school day, return as-is
+    if (dayType && dayType.startsWith('Day')) {
+        return date;
+    }
+    
+    // If entire week has no school days, jump to next/prev week
+    const hasSchoolDayInWeek = checkWeekForSchoolDays(date);
+    if (!hasSchoolDayInWeek) {
+        // Jump to next/previous week and try again
+        const newDate = new Date(date);
+        if (direction === 'next') {
+            newDate.setDate(date.getDate() + 7);
+        } else {
+            newDate.setDate(date.getDate() - 7);
+        }
+        return adjustForWeekView(newDate, direction);
+    }
+    
+    return date;
+}
+
+// NEW FUNCTION: Find next school day within the same week
+function findNextSchoolDayInWeek(startDate, direction) {
+    const maxAttempts = 5; // Don't check more than 5 days
+    let currentDate = new Date(startDate);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+        if (direction === 'forward') {
+            currentDate.setDate(currentDate.getDate() + 1);
+        } else {
+            currentDate.setDate(currentDate.getDate() - 1);
+        }
+        
+        const dateStr = (currentDate.getMonth() + 1) + '/' + currentDate.getDate() + '/' + currentDate.getFullYear();
+        const dayType = SCHOOL_CALENDAR[dateStr];
+        const dayOfWeek = currentDate.getDay();
+        
+        // Stop if we've gone past the week boundaries (Monday-Friday)
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            break;
+        }
+        
+        // If we found a school day, return it
+        if (dayType && dayType.startsWith('Day')) {
+            return currentDate;
+        }
+    }
+    
+    // If no school day found in the week, return the original date
+    return startDate;
+}
+
+// NEW FUNCTION: Check if a week has any school days
+function checkWeekForSchoolDays(date) {
+    const monday = new Date(date);
+    const dayOfWeek = date.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    monday.setDate(date.getDate() - daysFromMonday);
+    
+    // Check Monday through Friday
+    for (let i = 0; i < 5; i++) {
+        const checkDate = new Date(monday);
+        checkDate.setDate(monday.getDate() + i);
+        const dateStr = (checkDate.getMonth() + 1) + '/' + checkDate.getDate() + '/' + checkDate.getFullYear();
+        const dayType = SCHOOL_CALENDAR[dateStr];
+        
+        if (dayType && dayType.startsWith('Day')) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 // Jump back to the real “today”
 function jumpToToday() {
