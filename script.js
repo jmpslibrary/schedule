@@ -2134,7 +2134,7 @@ async function handleRecurringBooking(fields) {
         const endDateValue = recurrenceEndDate.value;
         if (!endDateValue) { return showNotificationModal('Please select an end date.', 'error', 'Missing Information'); }
         endDate = new Date(endDateValue + 'T23:59:59');
-    } else { // 'after'
+    } else {
         maxOccurrences = parseInt(recurrenceOccurrences.value);
         if (!maxOccurrences || maxOccurrences < 1) { return showNotificationModal('Please enter a valid number of occurrences.', 'error', 'Missing Information'); }
         endDate = new Date();
@@ -2146,46 +2146,32 @@ async function handleRecurringBooking(fields) {
     if (dayCheckboxes.length === 0) { return showNotificationModal('Please select at least one day for the recurrence.', 'error', 'Missing Information'); }
     const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
 
-    // --- FIXED: MORE ROBUST DATE LOGIC ---
     const seriesDates = [];
     const seriesDateStrings = [];
 
-    // Get today's date string in YYYY-MM-DD format for reliable comparison
-    const today = new Date();
-    const todayStr = today.getFullYear() + '-' + 
-                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(today.getDate()).padStart(2, '0');
+    // FIXED: Use the actual booking start date as the minimum, not today
+    // This ensures recurring bookings start from the selected date, not necessarily today
+    const startDateStr = fields.Date; // This is already in YYYY-MM-DD format
     
-    console.log('Today:', todayStr);
-    console.log('Start date:', fields.Date);
-
-    // Determine the minimum date to use (today or start date, whichever is later)
-    const useStartDate = fields.Date >= todayStr ? fields.Date : todayStr;
-    console.log('Using minimum date:', useStartDate);
+    console.log('Start date for recurring series:', startDateStr);
 
     for (const [dateString, dayType] of sortedCalendar) {
-        // Convert M/D/YYYY to YYYY-MM-DD for comparison
-        const dateParts = dateString.split('/'); // "9/8/2025" -> ["9", "8", "2025"]
+        const dateParts = dateString.split('/');
         const month = dateParts[0].padStart(2, '0');
         const day = dateParts[1].padStart(2, '0');
         const year = dateParts[2];
         const isoDateString = `${year}-${month}-${day}`;
         
-        // Skip dates before our minimum date
-        if (isoDateString < useStartDate) {
+        // FIXED: Only include dates on or after the booking start date
+        if (isoDateString < startDateStr) {
             continue;
         }
         
-        // Create Date object for other comparisons
         const currentDate = new Date(isoDateString + 'T12:00:00');
 
-        // Check occurrence limit
         if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
-        
-        // Check end date
         if (endDate && currentDate > endDate) break;
 
-        // Only process school days
         if (dayType && dayType.startsWith('Day')) {
             let match = false;
             if (type === 'cycle') {
@@ -2203,7 +2189,6 @@ async function handleRecurringBooking(fields) {
             }
         }
     }
-    // --- END: FIXED DATE LOGIC ---
 
     console.log('Final series dates:', seriesDateStrings);
 
