@@ -2149,11 +2149,13 @@ async function handleRecurringBooking(fields) {
     const seriesDates = [];
     const seriesDateStrings = [];
 
-    // FIXED: Use the actual booking start date as the minimum, not today
-    // This ensures recurring bookings start from the selected date, not necessarily today
-    const startDateStr = fields.Date; // This is already in YYYY-MM-DD format
+    // Use the booking start date as the absolute minimum
+    const startDateStr = fields.Date; // Already in YYYY-MM-DD format
     
-    console.log('Start date for recurring series:', startDateStr);
+    console.log('=== RECURRING BOOKING DEBUG ===');
+    console.log('Start date from form:', startDateStr);
+    console.log('Selected recurrence days:', selectedDays);
+    console.log('Recurrence type:', type);
 
     for (const [dateString, dayType] of sortedCalendar) {
         const dateParts = dateString.split('/');
@@ -2162,7 +2164,7 @@ async function handleRecurringBooking(fields) {
         const year = dateParts[2];
         const isoDateString = `${year}-${month}-${day}`;
         
-        // FIXED: Only include dates on or after the booking start date
+        // Skip any dates before the start date
         if (isoDateString < startDateStr) {
             continue;
         }
@@ -2172,7 +2174,8 @@ async function handleRecurringBooking(fields) {
         if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
         if (endDate && currentDate > endDate) break;
 
-        if (dayType && dayType.startsWith('Day')) {
+        // Only match actual school days (Day 1-5), NOT PA Days or Holidays
+        if (dayType && dayType.match(/^Day \d$/)) {  // FIXED: More strict matching
             let match = false;
             if (type === 'cycle') {
                 const cycleDay = parseInt(dayType.split(' ')[1]);
@@ -2183,7 +2186,7 @@ async function handleRecurringBooking(fields) {
             }
 
             if (match) {
-                console.log('Adding date:', isoDateString, 'Day type:', dayType);
+                console.log('✓ Adding date:', isoDateString, 'Day type:', dayType, 'Day of week:', currentDate.getDay());
                 seriesDates.push(currentDate);
                 seriesDateStrings.push(isoDateString);
             }
@@ -2191,8 +2194,10 @@ async function handleRecurringBooking(fields) {
     }
 
     console.log('Final series dates:', seriesDateStrings);
+    console.log('=== END DEBUG ===');
 
     if (seriesDates.length === 0) { return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); }
+
 
     const conflictingBookings = [];
     try {
