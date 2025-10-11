@@ -1482,35 +1482,73 @@ function navigateDays(direction) {
 
 // Week-by-week nav (desktop arrows)
 function navigateWeeks(direction) {
-    const currentDateStr = new Date(datePicker.value + 'T00:00:00').toLocaleDateString();
-    const currentIndex = schoolDays.findIndex(entry => new Date(entry[0]).toLocaleDateString() === currentDateStr);
-
-    let nextIndex;
+    const currentDate = new Date(datePicker.value + 'T12:00:00');
+    
+    // Calculate the target date by adding/subtracting 7 days
+    const targetDate = new Date(currentDate);
     if (direction === 'next') {
-        nextIndex = Math.min(currentIndex + 5, schoolDays.length - 1);
+        targetDate.setDate(currentDate.getDate() + 7);
     } else {
-        nextIndex = Math.max(currentIndex - 5, 0);
+        targetDate.setDate(currentDate.getDate() - 7);
     }
-
-    if (currentIndex === nextIndex && currentIndex > -1) return;
-
-    if (currentIndex === -1 && direction === 'prev') {
-        const today = new Date(datePicker.value + 'T12:00:00');
-        const pastDays = schoolDays.filter(day => new Date(day[0]) < today);
-        if (pastDays.length > 0) {
-            nextIndex = Math.max(pastDays.length - 5, 0);
+    
+    // Format the target date as M/D/YYYY to look up in calendar
+    const targetDateStr = (targetDate.getMonth() + 1) + '/' + targetDate.getDate() + '/' + targetDate.getFullYear();
+    const dayType = SCHOOL_CALENDAR[targetDateStr];
+    
+    // If the target date is a school day, use it
+    if (dayType && dayType.match(/^Day \d$/)) {
+        datePicker.value = targetDate.toISOString().split('T')[0];
+        loadScheduleForSelectedDate();
+        return;
+    }
+    
+    // If target is not a school day, find the nearest school day in that week
+    const nearestSchoolDay = findNearestSchoolDayInWeek(targetDate, direction);
+    if (nearestSchoolDay) {
+        datePicker.value = nearestSchoolDay.toISOString().split('T')[0];
+    } else {
+        // If no school days in that week, try the next/previous week
+        if (direction === 'next') {
+            targetDate.setDate(targetDate.getDate() + 7);
         } else {
-            return;
+            targetDate.setDate(targetDate.getDate() - 7);
+        }
+        const fallbackSchoolDay = findNearestSchoolDayInWeek(targetDate, direction);
+        if (fallbackSchoolDay) {
+            datePicker.value = fallbackSchoolDay.toISOString().split('T')[0];
+        } else {
+            // Last resort: just use the target date
+            datePicker.value = targetDate.toISOString().split('T')[0];
         }
     }
-
-    let targetDate = new Date(schoolDays[nextIndex][0]);
     
-    // NEW: Adjust if landing on a Holiday or PA Day
-    targetDate = adjustForWeekView(targetDate, direction);
-    
-    datePicker.value = targetDate.toISOString().split('T')[0];
     loadScheduleForSelectedDate();
+}
+
+// Helper function to find the nearest school day within a week
+function findNearestSchoolDayInWeek(date, preferredDirection) {
+    // Get Monday of the week
+    const dayOfWeek = date.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() - daysFromMonday);
+    
+    // Check each day of the week (Monday-Friday)
+    const daysToCheck = preferredDirection === 'next' ? [0, 1, 2, 3, 4] : [4, 3, 2, 1, 0];
+    
+    for (const dayOffset of daysToCheck) {
+        const checkDate = new Date(monday);
+        checkDate.setDate(monday.getDate() + dayOffset);
+        const dateStr = (checkDate.getMonth() + 1) + '/' + checkDate.getDate() + '/' + checkDate.getFullYear();
+        const dayType = SCHOOL_CALENDAR[dateStr];
+        
+        if (dayType && dayType.match(/^Day \d$/)) {
+            return checkDate;
+        }
+    }
+    
+    return null; // No school days found in this week
 }
 
 // NEW FUNCTION: Adjust date if it lands on Holiday/PA Day at start or end of week
