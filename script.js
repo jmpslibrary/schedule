@@ -1413,7 +1413,7 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
     });
 
     return instances;
-}e
+}
 
 function resetGridToAvailable() {
     const selectedDate = new Date(datePicker.value + 'T12:00:00');
@@ -2344,58 +2344,90 @@ async function handleRecurringBooking(fields) {
     }
 }
 
-async function openManageRecurringPanel(recordIdToHighlight = null) {
+async function openManageRecurringPanel() {
     adminModal.classList.add('hidden');
-    recurringList.innerHTML = '<p class="text-center text-gray-500 py-4">Loading recurring bookings...</p>';
+    const recurringListContainer = document.getElementById('recurring-list');
+    const filterCheckbox = document.getElementById('show-only-current-recurring');
+    
+    recurringListContainer.innerHTML = '<p class="text-center text-gray-500 py-4">Loading recurring bookings...</p>';
     manageRecurringModal.classList.remove('hidden');
 
     try {
         const snapshot = await db.collection('recurring_bookings').orderBy('TeacherName').get();
         
-        recurringList.innerHTML = '';
-        if (snapshot.empty) {
-            recurringList.innerHTML = '<p class="text-center text-gray-500 py-8">No recurring bookings found.</p>';
-            return;
-        }
+        // Store all fetched bookings in an array
+        const allRecurringBookings = snapshot.docs.map(doc => ({ id: doc.id, fields: doc.data() }));
 
-        const listContainer = document.createElement('ul');
-        listContainer.className = 'divide-y divide-gray-200';
+        // New function to render the list based on the filter's state
+        const renderList = () => {
+            recurringListContainer.innerHTML = '';
+            const showOnlyCurrent = filterCheckbox.checked;
 
-        snapshot.forEach(doc => {
-            const record = { id: doc.id, fields: doc.data() };
-            const { TeacherName, RecurrenceType, RecurrenceDays, EndDate, EndOccurrences, BookingReason, SeriesID } = record.fields;
-            const li = document.createElement('li');
-            li.id = `recurring-${record.id}`;
-            li.className = 'p-4 flex justify-between items-start transition-colors duration-300';
-            
-            let daysText = RecurrenceType === 'cycle' ? `Cycle Days: ${RecurrenceDays}` : `Weekdays: ${RecurrenceDays.split(',').map(d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(', ')}`;
-            // --- FIX: Ensure EndDate is handled correctly ---
-            let endText = EndDate ? `until ${new Date(EndDate + 'T12:00:00').toLocaleDateString()}` : `for ${EndOccurrences} occurrences`;
-            
-            li.innerHTML = `
-                <div>
-                    <div class="font-semibold text-gray-900">${TeacherName}</div>
-                    <div class="text-sm text-gray-600">${BookingReason || 'Book Exchange'}</div>
-                    <div class="text-sm text-gray-500">${daysText} ${endText}</div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <!-- FIX: Pass the unique document ID (record.id) instead of SeriesID -->
-                    <button class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors" onclick="editRecurringSeries('${record.id}')" title="Edit Series">
-                        <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button class="text-red-600 hover:text-red-800 p-1 rounded transition-colors" onclick="deleteRecurringSeries('${record.id}')" title="Delete Series">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                </div>
-            `;
-            listContainer.appendChild(li);
-        });
-        
-        recurringList.appendChild(listContainer);
+            // Get today's date at midnight for accurate comparison
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Filter the records based on the checkbox
+            const filteredBookings = allRecurringBookings.filter(record => {
+                if (!showOnlyCurrent) {
+                    return true; // If filter is off, show everything
+                }
+                const endDate = record.fields.EndDate;
+                // If it has an EndDate, check if it's in the past
+                if (endDate) {
+                    const seriesEndDate = new Date(endDate + 'T23:59:59'); // Include the full end day
+                    return seriesEndDate >= today;
+                }
+                // If no EndDate (e.g., ends after X occurrences), assume it's current
+                return true;
+            });
+
+            if (filteredBookings.length === 0) {
+                recurringListContainer.innerHTML = '<p class="text-center text-gray-500 py-8">No matching recurring bookings found.</p>';
+                return;
+            }
+
+            const listElement = document.createElement('ul');
+            listElement.className = 'divide-y divide-gray-200';
+
+            filteredBookings.forEach(record => {
+                const { TeacherName, RecurrenceType, RecurrenceDays, EndDate, EndOccurrences, BookingReason } = record.fields;
+                const li = document.createElement('li');
+                li.id = `recurring-${record.id}`;
+                li.className = 'p-4 flex justify-between items-start transition-colors duration-300';
+                
+                let daysText = RecurrenceType === 'cycle' ? `Cycle Days: ${RecurrenceDays}` : `Weekdays: ${RecurrenceDays.split(',').map(d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(', ')}`;
+                let endText = EndDate ? `until ${new Date(EndDate + 'T12:00:00').toLocaleDateString()}` : `for ${EndOccurrences} occurrences`;
+                
+                li.innerHTML = `
+                    <div>
+                        <div class="font-semibold text-gray-900">${TeacherName}</div>
+                        <div class="text-sm text-gray-600">${BookingReason || 'Book Exchange'}</div>
+                        <div class="text-sm text-gray-500">${daysText} ${endText}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors" onclick="editRecurringSeries('${record.id}')" title="Edit Series">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800 p-1 rounded transition-colors" onclick="deleteRecurringSeries('${record.id}')" title="Delete Series">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+                `;
+                listElement.appendChild(li);
+            });
+            recurringListContainer.appendChild(listElement);
+        };
+
+        // Add an event listener to the checkbox to re-render the list when changed
+        filterCheckbox.addEventListener('change', renderList);
+
+        // Perform the initial render of the list
+        renderList();
         
     } catch (error) {
         console.error('Error loading recurring bookings:', error);
-        recurringList.innerHTML = `<p class="text-center text-red-500 py-4">Error loading recurring bookings: ${error.message}</p>`;
+        recurringListContainer.innerHTML = `<p class="text-center text-red-500 py-4">Error loading recurring bookings: ${error.message}</p>`;
     }
 }
 
@@ -2495,15 +2527,23 @@ function toggleEndCondition() {
 }
 
 function showRecurringChoiceModal(recordId, seriesId, dateString) {
-    // --- START OF FIX ---
-    // Check for admin permissions at the beginning of the function.
+    // --- FIX START ---
+    // First, check if the seriesId is valid. If not, show an error and stop.
+    if (!seriesId || seriesId === 'undefined') {
+        showNotificationModal(
+            "This recurring booking is missing its Series ID, possibly due to being older data. It cannot be edited as a series. You can edit or delete this one occurrence.",
+            'error',
+            'Cannot Edit Series'
+        );
+        return;
+    }
+    // --- FIX END ---
+
     const user = auth.currentUser;
     if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-        // If the user is not an admin, show a notification and stop.
         showNotificationModal("This is a recurring booking. You do not have permission to modify it. Please contact an administrator.", 'info', 'Permission Denied');
-        return; 
+        return;
     }
-    // --- END OF FIX ---
 
     const modal = document.getElementById('recurring-choice-modal');
 
@@ -2512,18 +2552,13 @@ function showRecurringChoiceModal(recordId, seriesId, dateString) {
         showNotificationModal("An error occurred. Could not determine which event to modify.", 'error');
         return;
     }
-    
+
     modal.classList.remove('hidden');
-    
+
     const modalContent = modal.querySelector('.modal-content');
-    
-    // This is the key change: A generated instance has a composite ID like "MasterID-DateString".
-    // A real booking has a standard Firestore ID without a hyphen.
     const isGeneratedInstance = recordId.includes('-');
 
     if (isGeneratedInstance) {
-        // For generated instances that don't exist in the 'bookings' collection yet.
-        // The user can delete this one occurrence (which creates an exception) or edit the whole series.
         modalContent.innerHTML = `
             <div class="flex items-center gap-3 mb-5">
                 <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
@@ -2543,7 +2578,6 @@ function showRecurringChoiceModal(recordId, seriesId, dateString) {
             </div>
         `;
     } else {
-        // For actual bookings in the database that are part of a series.
         modalContent.innerHTML = `
             <div class="flex items-center gap-3 mb-5">
                 <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
@@ -2563,8 +2597,7 @@ function showRecurringChoiceModal(recordId, seriesId, dateString) {
             </div>
         `;
     }
-    
-    // Add event listeners based on which modal was displayed
+
     if (isGeneratedInstance) {
         document.getElementById('delete-one-occurrence-btn').onclick = () => {
             modal.classList.add('hidden');
@@ -2576,30 +2609,46 @@ function showRecurringChoiceModal(recordId, seriesId, dateString) {
             showEditModal(recordId, true);
         };
     }
-    
+
     document.getElementById('edit-series-btn').onclick = () => {
         modal.classList.add('hidden');
         showEditRecurringModal(seriesId);
     };
-    
+
     document.getElementById('cancel-choice-btn').onclick = () => {
         modal.classList.add('hidden');
     };
 }
 
-async function showEditRecurringModal(masterRecordId) {
+async function showEditRecurringModal(seriesId) {
     const modal = document.getElementById('edit-recurring-modal');
     const form = document.getElementById('edit-recurring-form');
     form.reset();
-    
+
     try {
-        const masterDocRef = db.collection('recurring_bookings').doc(masterRecordId);
-        const masterDoc = await masterDocRef.get();
-        if (!masterDoc.exists) throw new Error("Could not find the master record for this series.");
-        
+        // --- FINAL FIX START ---
+        // Add a console log to help you debug which ID is failing.
+        console.log("Attempting to find master record for Series ID:", seriesId);
+
+        // This robust query is the correct approach.
+        const seriesQuery = await db.collection('recurring_bookings')
+            .where('SeriesID', '==', seriesId)
+            .limit(1)
+            .get();
+
+        if (seriesQuery.empty) {
+            // The query found nothing, which confirms a data issue.
+            // We throw a more specific error.
+            throw new Error(`The master record for Series ID "${seriesId}" does not exist in the database. It may have been deleted or created incorrectly.`);
+        }
+
+        const masterDoc = seriesQuery.docs[0];
+        const masterRecordId = masterDoc.id;
         const masterRecord = masterDoc.data();
+        // --- FINAL FIX END ---
+
         form.dataset.masterRecordId = masterRecordId;
-        form.dataset.seriesId = masterRecord.SeriesID; // Keep seriesId for updating instances
+        form.dataset.seriesId = masterRecord.SeriesID;
         
         if (masterRecord.EndDate) {
             document.getElementById('edit-end-type-on-date').checked = true;
@@ -2612,6 +2661,7 @@ async function showEditRecurringModal(masterRecordId) {
         modal.classList.remove('hidden');
         
     } catch (error) {
+        // The improved error from the 'throw' statement above will be shown to the user.
         showNotificationModal(error.message, 'error');
         console.error(error);
     }
