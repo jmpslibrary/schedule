@@ -2187,8 +2187,7 @@ async function handleRecurringBooking(fields) {
     const seriesDates = [];
     const seriesDateStrings = [];
 
-    // Use the booking start date as the absolute minimum
-    const startDateStr = fields.Date; // Already in YYYY-MM-DD format
+    const startDateStr = fields.Date;
     
     console.log('=== RECURRING BOOKING DEBUG ===');
     console.log('Start date from form:', startDateStr);
@@ -2202,7 +2201,6 @@ async function handleRecurringBooking(fields) {
         const year = dateParts[2];
         const isoDateString = `${year}-${month}-${day}`;
         
-        // Skip any dates before the start date
         if (isoDateString < startDateStr) {
             continue;
         }
@@ -2212,8 +2210,7 @@ async function handleRecurringBooking(fields) {
         if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
         if (endDate && currentDate > endDate) break;
 
-        // Only match actual school days (Day 1-5), NOT PA Days or Holidays
-        if (dayType && dayType.match(/^Day \d$/)) {  // FIXED: More strict matching
+        if (dayType && dayType.match(/^Day \d$/)) {
             let match = false;
             if (type === 'cycle') {
                 const cycleDay = parseInt(dayType.split(' ')[1]);
@@ -2234,8 +2231,9 @@ async function handleRecurringBooking(fields) {
     console.log('Final series dates:', seriesDateStrings);
     console.log('=== END DEBUG ===');
 
-    if (seriesDates.length === 0) { return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); }
-
+    if (seriesDates.length === 0) { 
+        return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); 
+    }
 
     const conflictingBookings = [];
     try {
@@ -2293,14 +2291,20 @@ async function handleRecurringBooking(fields) {
         batch.delete(docRef);
     });
 
+    // FIXED: Create the master record reference first, then use its ID
     const masterRecordRef = db.collection('recurring_bookings').doc();
-    const uniqueSeriesId = masterRecordRef.id;
+    const uniqueSeriesId = masterRecordRef.id; // Use the document ID as SeriesID
 
     const masterRecordFields = {
-        TeacherName: fields.TeacherName, StartPeriod: fields.StartPeriod, EndPeriod: fields.EndPeriod,
-        BookingReason: fields.BookingReason, RecurrenceType: type, RecurrenceDays: selectedDays.join(','),
-        SeriesID: uniqueSeriesId,
-        userEmail: auth.currentUser.email
+        TeacherName: fields.TeacherName, 
+        StartPeriod: fields.StartPeriod, 
+        EndPeriod: fields.EndPeriod,
+        BookingReason: fields.BookingReason, 
+        RecurrenceType: type, 
+        RecurrenceDays: selectedDays.join(','),
+        SeriesID: uniqueSeriesId, // Store the SeriesID
+        userEmail: auth.currentUser.email,
+        CreatedAt: firebase.firestore.FieldValue.serverTimestamp() // Track creation time
     };
 
     if (endType === 'on-date') {
@@ -2308,14 +2312,16 @@ async function handleRecurringBooking(fields) {
     } else {
         masterRecordFields.EndOccurrences = maxOccurrences;
     }
+    
     batch.set(masterRecordRef, masterRecordFields);
 
-    // Use the already-formatted YYYY-MM-DD strings
+    // Create individual booking instances
     seriesDateStrings.forEach(dateStr => {
         const instanceRef = db.collection('bookings').doc();
         batch.set(instanceRef, {
-            ...fields, Date: dateStr,
-            SeriesID: uniqueSeriesId,
+            ...fields, 
+            Date: dateStr,
+            SeriesID: uniqueSeriesId, // Use the same SeriesID
             userEmail: auth.currentUser.email
         });
     });
@@ -2411,6 +2417,7 @@ async function deleteRecurringSeries(recordId) {
             throw new Error('Master recurring record ID was not provided.');
         }
 
+        // FIXED: Get the master record by document ID directly
         const masterDoc = await db.collection('recurring_bookings').doc(recordId).get();
         if (!masterDoc.exists) throw new Error('Master recurring record not found.');
 
@@ -2429,31 +2436,24 @@ async function deleteRecurringSeries(recordId) {
 
         const batch = db.batch();
 
+        // Delete future booking instances
         bookingsToDeleteSnapshot.forEach(doc => {
             batch.delete(doc.ref);
         });
 
-        // --- CHANGE IS HERE ---
-        // Instead of deleting the master record, we update it to end "yesterday".
-        // This preserves the rule for past events while stopping future ones.
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        // Update the master record to end yesterday and remove any occurrence count.
-        batch.update(masterDoc.ref, {
-            EndDate: yesterdayStr,
-            EndOccurrences: firebase.firestore.FieldValue.delete()
-        });
-        // --- END OF CHANGE ---
+        // FIXED: Actually delete the master record instead of updating it
+        // This is cleaner and prevents orphaned records
+        batch.delete(masterDoc.ref);
 
         await batch.commit();
 
-        showNotificationModal(`Future recurring bookings deleted successfully. ${bookingsToDeleteSnapshot.size} bookings were removed.`, 'success');
+        showNotificationModal(`Recurring series deleted successfully. ${bookingsToDeleteSnapshot.size} future bookings were removed.`, 'success');
+        
+        // Close the manage modal and refresh
         manageRecurringModal.classList.add('hidden');
         loadScheduleForSelectedDate();
-        // Send a notification that the series was modified (not entirely deleted)
+        
+        // Send notification email
         await sendNotificationEmail('series_deleted', masterData);
 
     } catch (error) {
