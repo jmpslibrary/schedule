@@ -2354,31 +2354,25 @@ async function openManageRecurringPanel() {
 
     try {
         const snapshot = await db.collection('recurring_bookings').orderBy('TeacherName').get();
-        
-        // Store all fetched bookings in an array
         const allRecurringBookings = snapshot.docs.map(doc => ({ id: doc.id, fields: doc.data() }));
 
-        // New function to render the list based on the filter's state
         const renderList = () => {
             recurringListContainer.innerHTML = '';
-            const showOnlyCurrent = filterCheckbox.checked;
+            // Safety check: only read 'checked' property if the element exists
+            const showOnlyCurrent = filterCheckbox ? filterCheckbox.checked : false;
 
-            // Get today's date at midnight for accurate comparison
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Filter the records based on the checkbox
             const filteredBookings = allRecurringBookings.filter(record => {
                 if (!showOnlyCurrent) {
-                    return true; // If filter is off, show everything
+                    return true;
                 }
                 const endDate = record.fields.EndDate;
-                // If it has an EndDate, check if it's in the past
                 if (endDate) {
-                    const seriesEndDate = new Date(endDate + 'T23:59:59'); // Include the full end day
+                    const seriesEndDate = new Date(endDate + 'T23:59:59');
                     return seriesEndDate >= today;
                 }
-                // If no EndDate (e.g., ends after X occurrences), assume it's current
                 return true;
             });
 
@@ -2397,7 +2391,7 @@ async function openManageRecurringPanel() {
                 li.className = 'p-4 flex justify-between items-start transition-colors duration-300';
                 
                 let daysText = RecurrenceType === 'cycle' ? `Cycle Days: ${RecurrenceDays}` : `Weekdays: ${RecurrenceDays.split(',').map(d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(', ')}`;
-                let endText = EndDate ? `until ${new Date(EndDate + 'T12:00:00').toLocaleDateString()}` : `for ${EndOccurrences} occurrences`;
+                let endText = EndDate ? `until ${new Date(EndDate + 'T12:00:00').toLocaleDateString()}` : (EndOccurrences ? `for ${EndOccurrences} occurrences` : '');
                 
                 li.innerHTML = `
                     <div>
@@ -2419,10 +2413,14 @@ async function openManageRecurringPanel() {
             recurringListContainer.appendChild(listElement);
         };
 
-        // Add an event listener to the checkbox to re-render the list when changed
-        filterCheckbox.addEventListener('change', renderList);
+        // *** THIS IS THE FIX ***
+        // Check if the checkbox element exists before adding an event listener to it.
+        if (filterCheckbox) {
+            filterCheckbox.addEventListener('change', renderList);
+        }
+        // *** END OF FIX ***
 
-        // Perform the initial render of the list
+        // Perform the initial render
         renderList();
         
     } catch (error) {
