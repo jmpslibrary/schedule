@@ -471,6 +471,129 @@ document.addEventListener('DOMContentLoaded', () => {
         });        
 });
 
+async function handleRecurringUpdate(event) {
+    event.preventDefault();
+    const form = event.target;
+    const seriesId = form.dataset.seriesId;
+    const masterRecordId = form.dataset.masterRecordId;
+
+    if (!seriesId || !masterRecordId) {
+        return showNotificationModal('Cannot save. Missing series or record ID.', 'error');
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+
+    try {
+        submitButton.textContent = 'Saving...';
+        submitButton.disabled = true;
+
+        const masterDocRef = db.collection('recurring_bookings').doc(masterRecordId);
+        const masterDoc = await masterDocRef.get();
+        if (!masterDoc.exists) throw new Error("Master record not found.");
+        const masterRecord = masterDoc.data();
+
+        const newEndType = document.querySelector('input[name="edit-end-type"]:checked').value;
+        let newEndDate, newMaxOccurrences;
+
+        if (newEndType === 'on-date') {
+            newEndDate = document.getElementById('edit-end-date').value;
+            if (!newEndDate) throw new Error('Please select an end date.');
+        } else {
+            newMaxOccurrences = parseInt(document.getElementById('edit-recurrence-occurrences').value);
+            if (!newMaxOccurrences || newMaxOccurrences < 1) throw new Error('Please enter a valid number of occurrences.');
+        }
+
+        const allNewDates = [];
+        const selectedDays = masterRecord.RecurrenceDays.split(',').map(d => parseInt(d));
+        const finalDate = newEndDate ? new Date(newEndDate + 'T23:59:59') : new Date('2099-12-31');
+
+        for (const [dateString, dayType] of sortedCalendar) {
+            const dateParts = dateString.split('/');
+            const month = dateParts[0].padStart(2, '0');
+            const day = dateParts[1].padStart(2, '0');
+            const year = dateParts[2];
+            const isoDateString = `${year}-${month}-${day}`;
+            const currentDate = new Date(isoDateString + 'T12:00:00');
+
+            if (currentDate > finalDate) break;
+            if (newMaxOccurrences && allNewDates.length >= newMaxOccurrences) break;
+
+            let match = false;
+            if (dayType.startsWith('Day')) {
+                if (masterRecord.RecurrenceType === 'cycle') {
+                    const cycleDay = parseInt(dayType.split(' ')[1]);
+                    if (selectedDays.includes(cycleDay)) match = true;
+                } else {
+                    const dayOfWeek = currentDate.getDay();
+                    if (selectedDays.includes(dayOfWeek)) match = true;
+                }
+            }
+            if (match) {
+                allNewDates.push(isoDateString);
+            }
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const existingFutureBookingsSnapshot = await db.collection('bookings')
+            .where('SeriesID', '==', seriesId)
+            .where('Date', '>=', todayStr)
+            .get();
+
+        const existingFutureDates = new Set(existingFutureBookingsSnapshot.docs.map(doc => doc.data().Date));
+        const newDatesSet = new Set(allNewDates.filter(d => d >= todayStr));
+        const datesToAdd = [...newDatesSet].filter(d => !existingFutureDates.has(d));
+        const bookingsToDelete = existingFutureBookingsSnapshot.docs.filter(doc => !newDatesSet.has(doc.data().Date));
+
+        const batch = db.batch();
+        bookingsToDelete.forEach(doc => batch.delete(doc.ref));
+
+        for (const date of datesToAdd) {
+            const bookingsOnDateSnapshot = await db.collection('bookings').where('Date', '==', date).get();
+            if (!bookingsOnDateSnapshot.empty) {
+                for (const doc of bookingsOnDateSnapshot.docs) {
+                    const existingBooking = doc.data();
+                    const newStart = masterRecord.StartPeriod;
+                    const newEnd = masterRecord.EndPeriod;
+                    const existingStart = existingBooking.StartPeriod;
+                    const existingEnd = existingBooking.EndPeriod || existingStart;
+                    if (newStart <= existingEnd && newEnd >= existingStart) {
+                        throw new Error(`Conflict found on ${date} with an existing booking. Cannot extend series.`);
+                    }
+                }
+            }
+            const newBookingRef = db.collection('bookings').doc();
+            batch.set(newBookingRef, {
+                TeacherName: masterRecord.TeacherName, BookingReason: masterRecord.BookingReason,
+                StartPeriod: masterRecord.StartPeriod, EndPeriod: masterRecord.EndPeriod,
+                Date: date, SeriesID: seriesId, userEmail: masterRecord.userEmail
+            });
+        }
+
+        const masterUpdateData = {};
+        if (newEndDate) {
+            masterUpdateData.EndDate = newEndDate;
+            masterUpdateData.EndOccurrences = firebase.firestore.FieldValue.delete();
+        } else {
+            masterUpdateData.EndOccurrences = newMaxOccurrences;
+            masterUpdateData.EndDate = firebase.firestore.FieldValue.delete();
+        }
+        batch.update(masterDocRef, masterUpdateData);
+
+        await batch.commit();
+        showNotificationModal("Recurring series updated successfully.", 'success');
+        document.getElementById('edit-recurring-modal').classList.add('hidden');
+        loadScheduleForSelectedDate();
+
+    } catch (error) {
+        console.error('Error updating recurring series:', error);
+        showNotificationModal(error.message, 'error', 'Update Failed');
+    } finally {
+        submitButton.textContent = 'Save Changes';
+        submitButton.disabled = false;
+    }
+}
+
 function initializeApp() {
     drawGridStructure();
     populateReasonOptions();
@@ -1343,13 +1466,27 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
                     String(today.getDate()).padStart(2, '0');
 
-    rules.forEach(rule => {
-        const { EndDate, EndOccurrences, RecurrenceType, RecurrenceDays, SeriesID, Exceptions } = rule.fields;
+    rules.forEach((rule) => {
+        const { EndDate, EndOccurrences, RecurrenceType, RecurrenceDays, SeriesID, Exceptions, CreatedAt, StartDate } = rule.fields;
         
         // Create a Set of exception dates for quick lookup
         const exceptionDates = new Set(Exceptions || []);
 
         if (!SeriesID) return;
+
+        // Determine the actual start date of the series
+        // Use StartDate field which stores when the series should begin
+        let seriesStartDateStr = null;
+        if (StartDate) {
+            // StartDate is already in YYYY-MM-DD format
+            seriesStartDateStr = StartDate;
+        } else if (CreatedAt && CreatedAt.toDate) {
+            // Fallback to CreatedAt for old records
+            const createdDate = CreatedAt.toDate();
+            seriesStartDateStr = createdDate.getFullYear() + '-' + 
+                                String(createdDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(createdDate.getDate()).padStart(2, '0');
+        }
 
         const seriesDates = new Set();
         let occurrencesFound = 0;
@@ -1363,7 +1500,12 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
             const year = dateParts[2];
             const isoDateString = `${year}-${month}-${day}`;
             
-            // FIXED: Skip past dates - don't generate instances for dates before today
+            // Skip dates before the series was created/started
+            if (seriesStartDateStr && isoDateString < seriesStartDateStr) {
+                continue;
+            }
+            
+            // Skip past dates - don't generate instances for dates before today
             if (isoDateString < todayStr) {
                 continue;
             }
@@ -1384,7 +1526,6 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
                 }
 
                 if (match) {
-                    // Only count and add the date if it's NOT an exception
                     if (!exceptionDates.has(isoDateString)) {
                         seriesDates.add(isoDateString);
                         occurrencesFound++;
@@ -1393,7 +1534,7 @@ function generateRecurringInstancesForWeek(rules, weekDates) {
             }
         }
 
-        // Only generate instances for dates that are in the current week AND not in the past
+        // Generate instances for dates in the current week
         weekDateStrings.forEach(weekDateStr => {
             if (seriesDates.has(weekDateStr) && weekDateStr >= todayStr) {
                 instances.push({
@@ -2156,6 +2297,8 @@ function executeDelete() {
 
 function toggleRecurringOptions() {
     recurringOptions.classList.toggle('hidden', !makeRecurringCheckbox.checked);
+    // Add this line to ensure the correct day pickers are shown by default
+    toggleRecurrenceDayPickers(); 
 }
 
 function toggleRecurrenceDayPickers() {
@@ -2189,6 +2332,9 @@ async function handleRecurringBooking(fields) {
 
     const startDateStr = fields.Date;
     
+    // Convert start date to a Date object for proper comparison
+    const startDate = new Date(startDateStr + 'T00:00:00');
+    
     console.log('=== RECURRING BOOKING DEBUG ===');
     console.log('Start date from form:', startDateStr);
     console.log('Selected recurrence days:', selectedDays);
@@ -2200,12 +2346,12 @@ async function handleRecurringBooking(fields) {
         const day = dateParts[1].padStart(2, '0');
         const year = dateParts[2];
         const isoDateString = `${year}-${month}-${day}`;
+        const currentDate = new Date(isoDateString + 'T12:00:00');
         
-        if (isoDateString < startDateStr) {
+        // FIXED: Skip dates before the start date
+        if (currentDate < startDate) {
             continue;
         }
-        
-        const currentDate = new Date(isoDateString + 'T12:00:00');
 
         if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
         if (endDate && currentDate > endDate) break;
@@ -2291,7 +2437,7 @@ async function handleRecurringBooking(fields) {
         batch.delete(docRef);
     });
 
-    // FIXED: Create the master record reference first, then use its ID
+    // Create the master record reference first, then use its ID
     const masterRecordRef = db.collection('recurring_bookings').doc();
     const uniqueSeriesId = masterRecordRef.id; // Use the document ID as SeriesID
 
@@ -2665,126 +2811,189 @@ async function showEditRecurringModal(seriesId) {
     }
 }
 
-async function handleRecurringUpdate(event) {
-    event.preventDefault();
-    const form = event.target;
-    const seriesId = form.dataset.seriesId;
-    const masterRecordId = form.dataset.masterRecordId;
+async function handleRecurringBooking(fields) {
+    const type = recurrenceType.value;
+    const endType = document.querySelector('input[name="end-type"]:checked').value;
 
-    if (!seriesId || !masterRecordId) {
-        return showNotificationModal('Cannot save. Missing series or record ID.', 'error');
+    let endDate, maxOccurrences;
+    if (endType === 'on-date') {
+        const endDateValue = recurrenceEndDate.value;
+        if (!endDateValue) { return showNotificationModal('Please select an end date.', 'error', 'Missing Information'); }
+        endDate = new Date(endDateValue + 'T23:59:59');
+    } else {
+        maxOccurrences = parseInt(recurrenceOccurrences.value);
+        if (!maxOccurrences || maxOccurrences < 1) { return showNotificationModal('Please enter a valid number of occurrences.', 'error', 'Missing Information'); }
+        endDate = new Date();
+        endDate.setFullYear(endDate.getFullYear() + 5);
     }
 
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalText = submitButton.textContent;
+    const daySelector = type === 'cycle' ? '#cycle-day-options input:checked' : '#weekday-options input:checked';
+    const dayCheckboxes = document.querySelectorAll(daySelector);
+    if (dayCheckboxes.length === 0) { return showNotificationModal('Please select at least one day for the recurrence.', 'error', 'Missing Information'); }
+    const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
+
+    const seriesDates = [];
+    const seriesDateStrings = [];
+
+    const startDateStr = fields.Date;
+
+    // Convert start date to a Date object for proper comparison
+    const startDate = new Date(startDateStr + 'T00:00:00');
+
+    console.log('=== RECURRING BOOKING DEBUG ===');
+    console.log('Start date from form:', startDateStr);
+    console.log('Start date object:', startDate);
+    console.log('Selected recurrence days:', selectedDays);
+    console.log('Recurrence type:', type);
+
+    for (const [dateString, dayType] of sortedCalendar) {
+        const dateParts = dateString.split('/');
+        const month = dateParts[0].padStart(2, '0');
+        const day = dateParts[1].padStart(2, '0');
+        const year = dateParts[2];
+        const isoDateString = `${year}-${month}-${day}`;
+        const currentDate = new Date(isoDateString + 'T00:00:00'); // Changed to 00:00:00 for consistency
+        
+        // FIXED: Skip dates before the start date (using midnight for both for accurate comparison)
+        if (currentDate < startDate) {
+            continue;
+        }
+
+        if (maxOccurrences && seriesDates.length >= maxOccurrences) break;
+        if (endDate && currentDate > endDate) break;
+
+        if (dayType && dayType.match(/^Day \d$/)) {
+            let match = false;
+            if (type === 'cycle') {
+                const cycleDay = parseInt(dayType.split(' ')[1]);
+                if (selectedDays.includes(cycleDay)) match = true;
+            } else if (type === 'weekday') {
+                const dayOfWeek = currentDate.getDay();
+                console.log(`Checking ${isoDateString}: dayOfWeek=${dayOfWeek}, selectedDays includes it?`, selectedDays.includes(dayOfWeek));
+                if (selectedDays.includes(dayOfWeek)) match = true;
+            }
+
+            if (match) {
+                console.log('✓ Adding date:', isoDateString, 'Day type:', dayType, 'Day of week:', currentDate.getDay(), 'Current date:', currentDate, 'Start date:', startDate);
+                seriesDates.push(currentDate);
+                seriesDateStrings.push(isoDateString);
+            }
+        }
+    }
+    // --- END OF FIX ---
+
+    console.log('Final series dates:', seriesDateStrings);
+    console.log('=== END DEBUG ===');
+
+    if (seriesDates.length === 0) { 
+        return showNotificationModal('No valid school days were found for the selected recurrence pattern.', 'error', 'No Dates Found'); 
+    }
+
+    const conflictingBookings = [];
+    try {
+        const dateChunks = [];
+        for (let i = 0; i < seriesDateStrings.length; i += 10) {
+            dateChunks.push(seriesDateStrings.slice(i, i + 10));
+        }
+
+        for (const chunk of dateChunks) {
+            const conflictSnapshot = await db.collection('bookings').where('Date', 'in', chunk).get();
+            if (!conflictSnapshot.empty) {
+                conflictSnapshot.forEach(doc => {
+                    const booking = doc.data();
+                    if (fields.StartPeriod <= (booking.EndPeriod || booking.StartPeriod) && fields.EndPeriod >= booking.StartPeriod) {
+                        conflictingBookings.push({ id: doc.id, ...booking });
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error checking for conflicts:", error);
+        showNotificationModal("Could not check for booking conflicts. Please try again.", 'error');
+        return;
+    }
+
+    if (conflictingBookings.length > 0) {
+        const isUserAdmin = ADMIN_EMAILS.includes(auth.currentUser.email.toLowerCase());
+
+        if (isUserAdmin) {
+            const conflictMessages = conflictingBookings.map(b =>
+                `• ${b.Date}: ${b.TeacherName} (P${b.StartPeriod}${b.EndPeriod && b.EndPeriod !== b.StartPeriod ? '-' + b.EndPeriod : ''})`
+            ).join('\n');
+
+            const confirmed = await showConfirmationModal({
+                title: 'Confirm Override',
+                message: `This action will override and delete the following ${conflictingBookings.length} booking(s):\n\n${conflictMessages}\n\nDo you want to proceed?`,
+                icon: 'warning',
+                confirmText: 'Yes, Override',
+                cancelText: 'Cancel'
+            });
+
+            if (!confirmed) return;
+
+        } else {
+            const firstConflict = conflictingBookings[0];
+            showNotificationModal(`The time slot is already taken on ${firstConflict.Date}. Please select a different time or date.`, 'error', 'Booking Conflict');
+            return;
+        }
+    }
+
+    const batch = db.batch();
+
+    conflictingBookings.forEach(conflict => {
+        const docRef = db.collection('bookings').doc(conflict.id);
+        batch.delete(docRef);
+    });
+
+    const masterRecordRef = db.collection('recurring_bookings').doc();
+    const uniqueSeriesId = masterRecordRef.id;
+
+    const masterRecordFields = {
+        TeacherName: fields.TeacherName, 
+        StartPeriod: fields.StartPeriod, 
+        EndPeriod: fields.EndPeriod,
+        BookingReason: fields.BookingReason, 
+        RecurrenceType: type, 
+        RecurrenceDays: selectedDays.join(','),
+        SeriesID: uniqueSeriesId,
+        userEmail: auth.currentUser.email,
+        StartDate: fields.Date, // Store the actual booking start date
+        CreatedAt: firebase.firestore.FieldValue.serverTimestamp() // Keep this for tracking when it was created
+    };
+
+    if (endType === 'on-date') {
+        masterRecordFields.EndDate = recurrenceEndDate.value;
+    } else {
+        masterRecordFields.EndOccurrences = maxOccurrences;
+    }
+    
+    batch.set(masterRecordRef, masterRecordFields);
+
+    seriesDateStrings.forEach(dateStr => {
+        const instanceRef = db.collection('bookings').doc();
+        batch.set(instanceRef, {
+            ...fields, 
+            Date: dateStr,
+            SeriesID: uniqueSeriesId,
+            userEmail: auth.currentUser.email
+        });
+    });
 
     try {
-        submitButton.textContent = 'Saving...';
-        submitButton.disabled = true;
-
-        const masterDocRef = db.collection('recurring_bookings').doc(masterRecordId);
-        const masterDoc = await masterDocRef.get();
-        if (!masterDoc.exists) throw new Error("Master record not found.");
-        const masterRecord = masterDoc.data();
-
-        const newEndType = document.querySelector('input[name="edit-end-type"]:checked').value;
-        let newEndDate, newMaxOccurrences;
-
-        if (newEndType === 'on-date') {
-            newEndDate = document.getElementById('edit-end-date').value;
-            if (!newEndDate) throw new Error('Please select an end date.');
-        } else {
-            newMaxOccurrences = parseInt(document.getElementById('edit-recurrence-occurrences').value);
-            if (!newMaxOccurrences || newMaxOccurrences < 1) throw new Error('Please enter a valid number of occurrences.');
-        }
-
-        const allNewDates = [];
-        const selectedDays = masterRecord.RecurrenceDays.split(',').map(d => parseInt(d));
-        const finalDate = newEndDate ? new Date(newEndDate + 'T23:59:59') : new Date('2099-12-31');
-
-        for (const [dateString, dayType] of sortedCalendar) {
-            const dateParts = dateString.split('/');
-            const month = dateParts[0].padStart(2, '0');
-            const day = dateParts[1].padStart(2, '0');
-            const year = dateParts[2];
-            const isoDateString = `${year}-${month}-${day}`;
-            const currentDate = new Date(isoDateString + 'T12:00:00');
-
-            if (currentDate > finalDate) break;
-            if (newMaxOccurrences && allNewDates.length >= newMaxOccurrences) break;
-
-            let match = false;
-            if (dayType.startsWith('Day')) {
-                if (masterRecord.RecurrenceType === 'cycle') {
-                    const cycleDay = parseInt(dayType.split(' ')[1]);
-                    if (selectedDays.includes(cycleDay)) match = true;
-                } else {
-                    const dayOfWeek = currentDate.getDay();
-                    if (selectedDays.includes(dayOfWeek)) match = true;
-                }
-            }
-            if (match) {
-                allNewDates.push(isoDateString);
-            }
-        }
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        const existingFutureBookingsSnapshot = await db.collection('bookings')
-            .where('SeriesID', '==', seriesId)
-            .where('Date', '>=', todayStr)
-            .get();
-
-        const existingFutureDates = new Set(existingFutureBookingsSnapshot.docs.map(doc => doc.data().Date));
-        const newDatesSet = new Set(allNewDates.filter(d => d >= todayStr));
-        const datesToAdd = [...newDatesSet].filter(d => !existingFutureDates.has(d));
-        const bookingsToDelete = existingFutureBookingsSnapshot.docs.filter(doc => !newDatesSet.has(doc.data().Date));
-
-        const batch = db.batch();
-        bookingsToDelete.forEach(doc => batch.delete(doc.ref));
-
-        for (const date of datesToAdd) {
-            const bookingsOnDateSnapshot = await db.collection('bookings').where('Date', '==', date).get();
-            if (!bookingsOnDateSnapshot.empty) {
-                for (const doc of bookingsOnDateSnapshot.docs) {
-                    const existingBooking = doc.data();
-                    const newStart = masterRecord.StartPeriod;
-                    const newEnd = masterRecord.EndPeriod;
-                    const existingStart = existingBooking.StartPeriod;
-                    const existingEnd = existingBooking.EndPeriod || existingStart;
-                    if (newStart <= existingEnd && newEnd >= existingStart) {
-                        throw new Error(`Conflict found on ${date} with an existing booking. Cannot extend series.`);
-                    }
-                }
-            }
-            const newBookingRef = db.collection('bookings').doc();
-            batch.set(newBookingRef, {
-                TeacherName: masterRecord.TeacherName, BookingReason: masterRecord.BookingReason,
-                StartPeriod: masterRecord.StartPeriod, EndPeriod: masterRecord.EndPeriod,
-                Date: date, SeriesID: seriesId, userEmail: masterRecord.userEmail
-            });
-        }
-
-        const masterUpdateData = {};
-        if (newEndDate) {
-            masterUpdateData.EndDate = newEndDate;
-            masterUpdateData.EndOccurrences = firebase.firestore.FieldValue.delete();
-        } else {
-            masterUpdateData.EndOccurrences = newMaxOccurrences;
-            masterUpdateData.EndDate = firebase.firestore.FieldValue.delete();
-        }
-        batch.update(masterDocRef, masterUpdateData);
-
         await batch.commit();
-        showNotificationModal("Recurring series updated successfully.", 'success');
-        document.getElementById('edit-recurring-modal').classList.add('hidden');
-        loadScheduleForSelectedDate();
 
+        let successMessage = `Successfully created ${seriesDates.length} recurring bookings.`;
+        if (conflictingBookings.length > 0) {
+            successMessage += ` ${conflictingBookings.length} conflicting booking(s) were overridden.`;
+        }
+        showNotificationModal(successMessage, 'success');
+
+        hideBookingModal();
+        loadScheduleForSelectedDate();
+        await sendNotificationEmail('created', { ...fields, isRecurring: true, RecurrenceType: type, RecurrenceDays: selectedDays });
     } catch (error) {
-        console.error('Error updating recurring series:', error);
-        showNotificationModal(error.message, 'error', 'Update Failed');
-    } finally {
-        submitButton.textContent = 'Save Changes';
-        submitButton.disabled = false;
+        console.error("Error creating recurring bookings:", error);
+        showNotificationModal(`Failed to create bookings: ${error.message}`, 'error');
     }
 }
 
