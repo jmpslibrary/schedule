@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Commons Booking</title>
+    <link href="dist/styles.css" rel="stylesheet">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        html {
+            font-size: 18px;
+        }
+
+        /* Custom styles for mobile optimization */
+        @media (max-width: 784px) {
+            .nav-button .button-text {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            html {
+                font-size: 16px;
+            }
+
+            .controls-container .nav-button {
+                display: none;
+            }
+
+            .schedule-grid .grid-header:not(.current-day-header):not(:first-child),
+            .schedule-grid .grid-cell:not(.current-day) {
+                display: none;
+            }
+
+            .schedule-grid {
+                grid-template-columns: auto 1fr !important;
+                gap: 8px !important;
+            }
+
+            #schedule-grid {
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            .animate-pulse {
+                animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 0.3;
+                }
+            }
+
+            .grid-cell {
+                min-height: 70px !important;
+                padding: 14px !important;
+                font-size: 16px !important;
+            }
+
+            .grid-header {
+                padding: 14px !important;
+                font-size: 18px !important;
+            }
+
+            .grid-label {
+                padding: 14px 10px !important;
+                font-size: 16px !important;
+                min-width: 100px;
+            }
+
+            .period-time {
+                font-size: 13px !important;
+            }
+
+            .booking-actions {
+                gap: 6px !important;
+            }
+
+            .booking-actions .material-symbols-outlined {
+                font-size: 22px !important;
+            }
+
+            .no-current-day-mobile {
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 24px;
+                background-color: #f9fafb;
+                color: #6b7280;
+                font-size: 18px;
+                margin: 24px 0;
+                border-radius: 16px;
+                border: 2px dashed #d1d5db;
+            }
+
+            #delete-booking-btn.btn-large {
+                padding: 6px 16px !important;
+            }
+        }
+
+        @media (min-width: 641px) {
+
+            .no-current-day-mobile,
+            .mobile-day-info {
+                display: none !important;
+            }
+
+            .booking-actions {
+                gap: 6px !important;
+            }
+
+            /* Increased grid cell sizing for desktop */
+            .grid-cell {
+                min-height: 80px !important;
+                padding: 18px !important;
+                font-size: 16px !important;
+            }
+
+            .grid-header {
+                padding: 18px !important;
+                font-size: 18px !important;
+            }
+
+            .grid-label {
+                padding: 18px 12px !important;
+                font-size: 16px !important;
+                min-width: 120px;
+            }
+
+            .period-time {
+                font-size: 14px !important;
+            }
+
+            #delete-booking-btn.btn-large {
+                padding: 12px 16px !important;
+            }
+        }
+
+        .schedule-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .schedule-grid {
+            min-width: 400px;
+            gap: 8px;
+        }
+
+        @layer utilities {
+            input[type="date"]::-webkit-calendar-picker-indicator {
+                opacity: 0;
+                cursor: pointer;
+            }
+
+            input[type="date"]::-moz-calendar-picker-indicator {
+                opacity: 0;
+                cursor: pointer;
+            }
+
+            .date-picker-wrapper .date-picker-icon {
+                right: 8px;
+                pointer-events: none;
+            }
+        }
+
+        .grid-cell.available {
+            border-radius: 10px;
+            /* Slightly larger border radius */
+        }
+
+        .grid-cell.available:hover {
+            /* A slightly darker gradient for the hover state */
+            background-image: linear-gradient(to bottom, #dcfce7, #bbf7d0);
+            transform: translateY(-2px);
+            /* A nice lift effect on hover */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+            /* Slightly larger shadow */
+        }
+
+        .grid-header.current-day-header {
+            background-color: #dbeafe !important;
+            /* A light blue */
+            color: #1e40af !important;
+            /* A dark blue text */
+            border-bottom: 2px solid #3b82f6 !important;
+            /* A solid blue bottom border */
+        }
+
+        /* Make sure the text inside the highlighted header is also dark blue */
+        .grid-header.current-day-header .header-title,
+        .grid-header.current-day-header .header-date {
+            color: #1e40af !important;
+        }
+
+        .btn-large {
+            padding: 12px 20px !important;
+            font-size: 16px !important;
+        }
+
+
+        #delete-booking-btn .material-symbols-outlined {
+            vertical-align: middle;
+            line-height: 1;
+            /* keeps it tighter */
+        }
+
+        .input-large {
+            padding: 12px 16px !important;
+            font-size: 16px !important;
+        }
+
+        .site-footer {
+            /* This matches the width and centering of your main content */
+            max-width: 80rem;
+            /* 80rem is the equivalent of Tailwind's max-w-7xl */
+            margin-left: auto;
+            margin-right: auto;
+
+            /* This adds the border and spacing */
+            border-top: 1px solid #e5e7eb;
+            /* This is a light gray, similar to Tailwind's gray-200 */
+            padding-top: 0.5rem;
+            /* Adds space above the text */
+            padding-bottom: 2rem;
+            /* Adds space below the text */
+            padding-left: 1rem;
+            /* Adds space on the sides */
+            margin-top: 1rem;
+            /* Adds space between the schedule and the footer */
+        }
+
+        .site-footer p {
+            /* This styles and aligns the text */
+            text-align: right;
+            font-size: 0.775rem;
+            /* Small text, like Tailwind's text-sm */
+            color: #6b7280;
+            /* Muted gray color, like Tailwind's gray-500 */
+        }
+
+        .school-name {
+            letter-spacing: 1.8px;
+            font-size: 0.75em;
+            line-height: 0.55rem;
+            padding-top: 10px;
+        }
+
+        .date-picker-icon {
+            padding-top: 10px;
+        }
+
+        .day-checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .day-checkbox-container label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+        }
+
+        .coverage-cell {
+            background-color: #fef08a;
+            /* This is Tailwind's gray-500 */
+            color: #854d0e;
+        }
+
+        .contact-text {
+            font-size: 10px;
+        }
+
+        #manage-recurring-modal .modal-content {
+            max-height: 80vh;
+        }
+
+        #recurring-list {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        #recurring-list ul {
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        #recurring-list li:last-child {
+            border-bottom: none;
+        }
+
+        #manage-recurring-btn {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background-color: #7c3aed !important;
+            color: white !important;
+        }
+
+        #manage-recurring-btn:hover {
+            background-color: #6d28d9 !important;
+        }
+
+        #notification-ok-btn {
+            margin-top: 6px;
+        }
+
+        .material-symbols-outlined {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        body.material-symbols-outlined-ready .material-symbols-outlined {
+            opacity: 1;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #2196F3;
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        /* --- NEW LOGIN SCREEN STYLES --- */
+        .login-screen {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .login-logo-container {
+            display: flex;
+            /* Use flexbox for centering */
+            justify-content: center;
+            /* Horizontally center the content */
+            align-items: center;
+            /* Vertically center (if container has height) */
+            width: 100%;
+            /* Take full width of its parent */
+            overflow: hidden;
+            /* Hide anything that goes outside */
+        }
+
+        .login-logo {
+            width: 100%;
+            /* Adjust this value for the base size */
+            height: auto;
+            /* Maintains aspect ratio */
+
+            /* This is the key for offsetting! */
+            margin-right: -4.5%;
+            /* Adjust this percentage to shift it right */
+            margin-bottom: 20px;
+
+            /* Optional: Add max-width for very large screens if needed */
+            max-width: 40%;
+            /* Example: Logo won't get wider than 180px */
+        }
+
+        /* Optional: Adjust for smaller screens if the offset becomes too much */
+        @media (max-width: 640px) {
+            .login-logo {
+                max-width: 70%;
+                /* Make it a bit smaller on mobile */
+                margin-right: -4%;
+                /* Less offset on smaller screens */
+                margin-bottom: 15px;
+            }
+        }
+
+        .login-screen h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+        }
+
+        .login-screen p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        #login-btn {
+            background: white;
+            color: #4285f4;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        #login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            background: #f8f9fa;
+        }
+
+        #login-btn:active {
+            transform: translateY(0);
+        }
+
+        #login-btn::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="%2334a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="%23fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="%23ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        @media (max-width: 640px) {
+            .login-screen h1 {
+                font-size: 2rem;
+            }
+
+            .login-screen p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-700 font-sans">
+
+    <div id="login-screen" class="login-screen">
+        <div class="login-logo-container mb-6">
+            <img src="logo.png" alt="Jack Miner Nighthawks Logo" class="login-logo">
+        </div>
+        <h1>Learning Commons Booking</h1>
+        <p>Please sign in with your <strong>@ddsb.ca</strong> Google account to view the schedule and book available
+            time slots.</p>
+        <button id="login-btn">Sign in with Google</button>
+    </div>
+
+    <div id="main-app" class="hidden p-3 sm:p-6 md:p-10">
+        <div class="max-w-7xl mx-auto">
+            <p class="school-name uppercase sm:hidden text-center text-sm text-gray-500">Jack Miner Public School</p>
+            <header class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <img src="logo.png" alt="Jack Miner Nighthawks Logo" class="hidden sm:block h-12 sm:h-16 w-auto">
+                    <h1 class="text-2xl font-bold tracking-tighter mb-2 sm:text-3xl text-gray-800 mb-0">Learning Commons
+                        Booking</h1>
+                </div>
+                <div id="auth-container">
+                    <div id="user-info" class="hidden items-center gap-2 sm:gap-4 text-center">
+                        <span class="text-sm sm:text-base text-gray-700">Welcome, <span id="user-name"
+                                class="font-semibold"></span>!</span>
+                        <button id="admin-btn" title="Admin Panel" class="hidden p-1.5 rounded-full hover:bg-gray-200">
+                            <span class="material-symbols-outlined text-gray-600 align-middle">settings</span>
+                        </button>
+                        <button id="logout-btn"
+                            class="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <div id="app-content" class="hidden">
+                <a href="https://docs.google.com/spreadsheets/d/1ruNC9RYhVKKjMv66EGIWbksIMGRhfphrGhT26CPhawQ/edit?usp=sharing"
+                    target="_blank" rel="noopener noreferrer"
+                    class="flex items-center gap-3 w-full p-3 sm:p-4 mb-4 text-blue-800 bg-blue-50 border border-blue-200 rounded-lg shadow-sm hover:bg-blue-100 hover:shadow-md transition-all duration-200 group decoration-0">
+                    <span
+                        class="material-symbols-outlined text-blue-600 text-2xl group-hover:scale-110 transition-transform">laptop_chromebook</span>
+                    <span class="text-sm sm:text-base">Click here for Shared Chromebook schedule and sign-out</span>
+                </a>
+                <div
+                    class="controls-container flex flex-col sm:flex-row items-center justify-between sm:gap-6 mb-4 p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+
+                    <div class="date-picker-wrapper flex items-center flex-1 sm:flex-none gap-2">
+                        <label for="date-picker"
+                            class="text-sm font-medium text-gray-700 whitespace-nowrap">Date:</label>
+                        <div class="relative">
+                            <input type="date" id="date-picker"
+                                class="flex-1 sm:w-40 h-10 pl-3 pr-3 border border-gray-300 rounded-md text-gray-800 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <span
+                                class="material-symbols-outlined date-picker-icon absolute right-3 text-gray-500 pointer-events-none">calendar_month</span>
+                        </div>
+
+                        <button id="today-btn"
+                            class="hidden px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap">
+                            <span class="material-symbols-outlined text-base align-middle mr-1">today</span>
+                            Today
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <button id="prev-week-btn"
+                            class="nav-button flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-lg">arrow_back</span>
+                            <span class="button-text">Prev Week</span>
+                        </button>
+
+                        <button id="next-week-btn"
+                            class="nav-button flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="button-text">Next Week</span>
+                            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="mobile-day-info"
+                    class="mobile-day-info hidden sm:hidden mb-5 p-4 bg-gray-100 border border-gray-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="text-base text-gray-600">
+                            <span class="font-semibold" id="mobile-current-day-info">Select a date to view
+                                schedule</span>
+                        </div>
+                        <div class="flex gap-3"> <button id="mobile-prev-day"
+                                class="p-3 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="material-symbols-outlined text-xl">arrow_left_alt</span>
+                            </button>
+                            <button id="mobile-next-day"
+                                class="p-3 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="material-symbols-outlined text-xl">arrow_right_alt</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="alert-banner"
+                    class="hidden bg-gradient-to-br from-yellow-400 to-yellow-200 border-l-4 border-b border-red-500 text-yellow-800 p-5 mb-5 rounded-md shadow-sm"
+                    role="alert">
+                </div>
+
+                <div id="info-banner" class="hidden p-4 sm:p-5 mb-5 sm:mb-7 text-center rounded-md text-base"></div>
+
+                <div id="no-current-day-mobile" class="no-current-day-mobile hidden">
+                    <span class="material-symbols-outlined text-gray-400 text-3xl mb-3 block">event_busy</span>
+                    <p class="text-lg">Select a school day to view and book library periods</p>
+                </div>
+
+                <div class="schedule-wrapper">
+                    <div id="schedule-grid" class="schedule-grid grid"
+                        style="grid-template-columns: auto repeat(5, 1fr);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4 sm:p-0">
+        <div
+            class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 id="modal-title" class="text-xl sm:text-2xl font-semibold mb-5 text-gray-800 leading-tight"></h2>
+            <form id="booking-form" class="flex flex-col gap-4 sm:gap-5">
+                <div>
+                    <label for="teacher-name" class="block text-base font-medium text-gray-700 mb-2">Your Name:</label>
+                    <input type="text" id="teacher-name" required
+                        class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div id="start-period-container" class="hidden">
+                    <label for="start-period" class="block text-base font-medium text-gray-700 mb-2">Start
+                        Period:</label>
+                    <select id="start-period"
+                        class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    </select>
+                </div>
+
+                <div>
+                    <label for="end-period" class="block text-base font-medium text-gray-700 mb-2">End Period:</label>
+                    <select id="end-period" required
+                        class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-base font-medium text-gray-700 mb-3">Booking for:</label>
+                    <div id="booking-reason-options" class="flex flex-col gap-2 mb-3">
+                    </div>
+                </div>
+
+                <input type="text" id="other-reason" placeholder="Please specify"
+                    class="input-large w-full px-3 py-2 mb-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 hidden">
+                <div id="recurring-section" class="hidden border-t border-gray-200 pt-4">
+
+                    <div class="flex items-center">
+                        <input id="make-recurring" type="checkbox"
+                            class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mb-2">
+                        <label for="make-recurring" class="ml-3 block text-base font-medium text-gray-700 mb-2">Make
+                            this a recurring booking</label>
+                    </div>
+
+                    <div id="recurring-options" class="hidden mt-4 flex flex-col gap-4">
+                        <div>
+                            <label for="recurrence-type" class="block text-sm font-medium text-gray-700 mb-1">Repeat
+                                on:</label>
+                            <select id="recurrence-type"
+                                class="input-large w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="cycle">Cycle Day (1-5)</option>
+                                <option value="weekday" selected>Day of the Week (Mon-Fri)</option>
+                            </select>
+                        </div>
+
+                        <div id="cycle-day-options">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Cycle Days:</label>
+                        </div>
+
+                        <div id="weekday-options" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Weekdays:</label>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">End:</label>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center">
+                                    <input type="radio" id="end-type-on-date" name="end-type" value="on-date" checked
+                                        class="mr-2 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    <label for="end-type-on-date" class="ml-2 text-sm text-gray-700">On Date</label>
+                                </div>
+
+                                <div id="end-date-container" class="relative">
+                                    <input type="date" id="end-date"
+                                        class="input-large w-full px-3 pr-10 py-2 border border-gray-300 rounded-md">
+                                    <span
+                                        class="material-symbols-outlined date-picker-icon absolute top-1/2 -translate-y-1/2 right-3 text-gray-500 pointer-events-none">calendar_month</span>
+                                </div>
+
+                                <div class="flex items-center mt-2">
+                                    <input type="radio" id="end-type-after" name="end-type" value="after"
+                                        class="mr-2 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    <label for="end-type-after" class="ml-2 text-sm text-gray-700">After</label>
+                                </div>
+                                <div id="occurrences-container" class="hidden flex items-center gap-2">
+                                    <input type="number" id="recurrence-occurrences" min="1"
+                                        class="input-large w-24 px-3 py-2 border border-gray-300 rounded-md">
+                                    <span class="text-sm text-gray-700">occurrences</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4">
+                    <button type="button" id="delete-booking-btn"
+                        class="hidden btn-large order-4 sm:order-1 sm:mr-auto px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+
+                    <button type="button" id="cancel-booking-btn"
+                        class="order-3 sm:order-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit"
+                        class="order-2 sm:order-3 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 book">Book
+                        Slot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg">
+            <h3 class="text-xl sm:text-2xl font-semibold mb-5 text-gray-800">Admin Panel</h3>
+
+            <button id="manage-recurring-btn" type="button"
+                class="w-full mb-4 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                Manage Recurring Bookings
+            </button>
+
+            <h3 class="text-l sm:text-xl font-semibold mb-5 text-gray-800">Alert Banner</h3>
+            <form id="admin-form" class="flex flex-col gap-5">
+                <div>
+                    <label for="banner-message" class="block text-base font-medium text-gray-700 mb-2">Banner
+                        Message:</label>
+                    <textarea id="banner-message" rows="4" placeholder="e.g., The library will be closed on Friday..."
+                        class="input-large w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                <div>
+                    <label for="banner-expiry" class="block text-base font-medium text-gray-700 mb-2">Expiry Date and
+                        Time:</label>
+                    <input type="datetime-local" id="banner-expiry"
+                        class="input-large w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="flex items-center justify-between border-t border-gray-200 pt-4 mt-4">
+                    <label for="notifications-toggle" class="block text-base font-medium text-gray-700">Email
+                        Notifications</label>
+                    <label class="switch">
+                        <input type="checkbox" id="notifications-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-5">
+                    <button type="button" id="delete-banner-btn"
+                        class="btn-large order-3 sm:order-1 sm:mr-auto px-5 py-3 font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200">Delete
+                        Banner</button>
+                    <button type="button" id="cancel-admin-btn"
+                        class="btn-large order-2 sm:order-2 px-5 py-3 font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Close</button>
+                    <button type="submit"
+                        class="btn-large order-1 sm:order-3 px-5 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save
+                        Banner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="confirm-delete-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4 sm:p-0">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="material-symbols-outlined text-3xl text-red-600">delete_forever</span>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Confirm Deletion</h2>
+            </div>
+
+            <p class="text-gray-600 mb-6 pl-1">Are you sure you want to cancel this booking? This action cannot be
+                undone.</p>
+
+            <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-5">
+                <button id="cancel-delete-btn"
+                    class="btn-large order-2 sm:order-1 px-5 py-3 font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="confirm-delete-btn"
+                    class="btn-large order-1 sm:order-2 px-5 py-3 font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Yes,
+                    Cancel Booking</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="manage-recurring-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 sm:p-0">
+        <div
+            class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-800">Manage Recurring Bookings</h2>
+                <button id="close-manage-recurring-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center">
+                    <input type="checkbox" id="show-only-current-recurring"
+                        class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="show-only-current-recurring" class="ml-3 block text-sm font-medium text-gray-700">
+                        Show only current & upcoming bookings
+                    </label>
+                </div>
+            </div>
+            <div id="recurring-list" class="overflow-y-auto">
+            </div>
+        </div>
+    </div>
+
+    <div id="recurring-choice-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 sm:p-0">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg"
+            onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Edit Recurring Booking</h2>
+            </div>
+
+            <p class="text-gray-600 mb-6 leading-relaxed mb-3">This booking is part of a recurring series. Would you
+                like to edit only this specific event, or modify the entire recurring series?</p>
+
+            <div class="modal-buttons flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                <button type="button" id="cancel-choice-btn"
+                    class="btn-large order-3 sm:order-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 order-1 sm:order-2">
+                    <button type="button" id="edit-one-event-btn"
+                        class="btn-large px-5 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
+                        This One Event
+                    </button>
+                    <button type="button" id="edit-series-btn"
+                        class="btn-large px-5 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+                        The Entire Series
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-recurring-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 sm:p-0">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg"
+            onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="material-symbols-outlined text-3xl text-blue-600">event_repeat</span>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Edit Recurring Booking</h2>
+            </div>
+
+            <form id="edit-recurring-form">
+                <p class="text-gray-600 mb-6 leading-relaxed mb-3">Changes here will affect all future bookings in this
+                    series. Past bookings will not be changed.</p>
+
+                <div id="edit-recurring-options">
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">End:</label>
+                        <div class="flex flex-col gap-2 mb-3">
+                            <div class="flex items-center">
+                                <input type="radio" id="edit-end-type-on-date" name="edit-end-type" value="on-date"
+                                    checked class="mr-2 h-4 w-4 text-blue-600 border-gray-300 mr-2">
+                                <label for="edit-end-type-on-date" class="ml-2 text-base text-gray-700">On Date</label>
+                            </div>
+
+                            <div id="edit-end-date-container" class="relative">
+                                <input type="date" id="edit-end-date"
+                                    class="input-large w-full px-3 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                <span
+                                    class="material-symbols-outlined date-picker-icon absolute top-1/2 -translate-y-1/2 right-3 text-gray-500 pointer-events-none">calendar_month</span>
+                            </div>
+
+                            <div class="flex items-center mt-2">
+                                <input type="radio" id="edit-end-type-after" name="edit-end-type" value="after"
+                                    class="mr-2 h-4 w-4 text-blue-600 border-gray-300 mr-2">
+                                <label for="edit-end-type-after" class="ml-2 text-base text-gray-700">After</label>
+                            </div>
+                            <div id="edit-occurrences-container" class="hidden flex items-center gap-2">
+                                <input type="number" id="edit-recurrence-occurrences" min="1"
+                                    class="input-large w-24 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-base text-gray-700">occurrences</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-3 mt-8">
+                    <button type="button" id="delete-entire-series-btn"
+                        class="btn-large order-3 sm:order-1 sm:mr-auto px-5 py-3 font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+                        Delete Series
+                    </button>
+
+                    <button type="button" id="cancel-edit-recurring-btn"
+                        class="btn-large order-2 sm:order-2 px-5 py-3 font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit"
+                        class="btn-large order-1 sm:order-3 px-5 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Save
+                        Changes</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div id="notification-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 sm:p-0">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg"
+            onclick="event.stopPropagation()">
+
+            <span id="notification-icon" class="material-symbols-outlined text-5xl mb-4"></span>
+
+            <h2 id="notification-title" class="text-xl sm:text-2xl font-semibold text-gray-800 mb-2"></h2>
+
+            <p id="notification-message" class="text-gray-600 mb-8"></p>
+
+            <button id="notification-ok-btn"
+                class="btn-large w-full sm:w-auto px-8 py-3 font-medium text-white rounded-md transition-colors mt-4">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <div id="confirmation-modal"
+        class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 sm:p-0">
+        <div class="modal-content bg-white p-5 sm:p-7 rounded-lg shadow-xl w-full max-w-lg"
+            onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-4">
+                <span id="confirmation-icon" class="material-symbols-outlined text-3xl text-red-600"></span>
+                <h2 id="confirmation-title" class="text-xl sm:text-2xl font-semibold text-gray-800"></h2>
+            </div>
+
+            <p id="confirmation-message" class="text-gray-600 mb-8 leading-relaxed"></p>
+
+            <div class="modal-buttons flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+                <button type="button" id="confirm-no-btn"
+                    class="btn-large order-2 sm:order-1 px-5 py-3 font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" id="confirm-yes-btn"
+                    class="btn-large order-1 sm:order-2 px-5 py-3 font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+                    Yes, Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
