@@ -1,4 +1,18 @@
 {
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "package.json",
+      "package-lock.json",
+      "src/**",
+      "tailwind.config.js",
+      "test_serve.py"
+    ]
+  },
   "functions": [
     {
       "source": "functions",

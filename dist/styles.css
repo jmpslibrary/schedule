@@ -88,6 +88,9 @@
 .transform {
   transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
 }
+.cursor-move {
+  cursor: move;
+}
 .cursor-pointer {
   cursor: pointer;
 }
@@ -218,6 +221,10 @@
 .duration-300 {
   --tw-duration: 300ms;
   transition-duration: 300ms;
+}
+.select-none {
+  -webkit-user-select: none;
+  user-select: none;
 }
 .group-hover\:scale-110 {
   &:is(:where(.group):hover *) {

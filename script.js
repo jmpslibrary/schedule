@@ -637,6 +637,9 @@ function initializeApp() {
     cancelBookingBtn.addEventListener('click', hideBookingModal);
     bookingForm.addEventListener('submit', handleBookingSubmit);
 
+    // Make booking modal draggable
+    setupDraggableModal(bookingModal, modalTitle);
+
     // Admin Panel listeners
     adminBtn.addEventListener('click', openAdminPanel);
     adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.add('hidden'); });
@@ -741,6 +744,101 @@ function setupSwipeNavigation() {
             }
         }
     }
+}
+
+// --- New Draggable Modal Logic ---
+function setupDraggableModal(modalOverlay, dragHandle) {
+    const modalContent = modalOverlay.querySelector('.modal-content');
+    
+    let isDragging = false;
+    let initialX;
+    let initialY;
+    let currentX;
+    let currentY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    // We only want to start dragging if they clicked the handle, 
+    // but the actual element moved is the content
+    
+    dragHandle.addEventListener("mousedown", dragStart, false);
+    dragHandle.addEventListener("touchstart", dragStart, {passive: false});
+
+    // We can listen to movement on the window to ensure we don't lose it if mouse moves fast
+    window.addEventListener("mouseup", dragEnd, false);
+    window.addEventListener("touchend", dragEnd, false);
+
+    window.addEventListener("mousemove", drag, {passive: false});
+    window.addEventListener("touchmove", drag, {passive: false});
+
+    function dragStart(e) {
+        // Don't drag if clicking buttons or inputs inside the header
+        if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'input') return;
+        
+        if (e.type === "touchstart") {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+
+        // Make sure we're dragging from the handle
+        if (e.target === dragHandle || dragHandle.contains(e.target)) {
+            isDragging = true;
+            // Add a class that could be used for styling while dragging
+            modalContent.classList.add('dragging');
+        }
+    }
+
+    function dragEnd(e) {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        modalContent.classList.remove('dragging');
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault(); // Prevent scrolling while dragging
+
+            if (e.type === "touchmove") {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+            } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+            }
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            // Apply the transform
+            setTranslate(currentX, currentY, modalContent);
+        }
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+    
+    // Reset position when modal opens/closes
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                if (modalOverlay.classList.contains('hidden')) {
+                    // Modal was hidden, reset position
+                    currentX = 0;
+                    currentY = 0;
+                    xOffset = 0;
+                    yOffset = 0;
+                    setTranslate(0, 0, modalContent);
+                }
+            }
+        });
+    });
+    
+    observer.observe(modalOverlay, { attributes: true });
 }
 
 // --- New Email Notification Logic ---
@@ -977,10 +1075,15 @@ function showBookingModal(dayNumber, startPeriod, dateString) {
     // --- END OF FIX ---
 
     modalTitle.innerHTML = `
-        <span class="material-symbols-outlined align-middle text-blue-600">calendar_month</span>
-        ${displayDate}<br>
-        <span class="material-symbols-outlined align-middle text-blue-600">schedule</span>
-        Starting Period ${startPeriod}
+        <div class="flex justify-between items-start w-full">
+            <div>
+                <span class="material-symbols-outlined align-middle text-blue-600">calendar_month</span>
+                ${displayDate}<br>
+                <span class="material-symbols-outlined align-middle text-blue-600">schedule</span>
+                Starting Period ${startPeriod}
+            </div>
+            <span class="material-symbols-outlined text-gray-400 hover:text-gray-600 cursor-move" title="Drag to move">drag_indicator</span>
+        </div>
         `;
     
     const endPeriodSelect = document.getElementById('end-period');
@@ -1078,7 +1181,14 @@ async function showEditModal(recordId, isDetached = false) {
         bookingForm.dataset.recordId = recordId;
         bookingForm.dataset.isDetached = isDetached;
 
-        modalTitle.innerHTML = `<span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span> Edit Booking`;
+        modalTitle.innerHTML = `
+            <div class="flex justify-between items-start w-full">
+                <div>
+                    <span class="material-symbols-outlined align-middle text-blue-600" style="font-size: 1.2em;">edit_calendar</span> Edit Booking
+                </div>
+                <span class="material-symbols-outlined text-gray-400 hover:text-gray-600 cursor-move" title="Drag to move">drag_indicator</span>
+            </div>
+        `;
         bookingForm.querySelector('.book').textContent = 'Update Booking';
         deleteBookingBtn.classList.remove('hidden');
         document.getElementById('start-period-container').classList.remove('hidden');
@@ -1459,13 +1569,23 @@ function renderBookings(bookings) {
                 }
             } 
             else {
-                cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative bg-blue-100 text-blue-800`;
+                const teacherNameStr = record.fields.TeacherName || "";
+                const reasonStr = bookingReason || "";
+                const isCustomClosed = reasonStr.toLowerCase().includes("closed") || reasonStr.includes("⛔") ||
+                                       teacherNameStr.toLowerCase().includes("closed") || teacherNameStr.includes("⛔");
+                
+                const bgClass = isCustomClosed ? "bg-red-100" : "bg-blue-100";
+                const textClass = isCustomClosed ? "text-red-800" : "text-blue-800";
+                const iconColorClass = isCustomClosed ? "text-red-700" : "text-blue-700";
+                const arrowColorClass = isCustomClosed ? "text-red-300" : "text-blue-300";
+
+                cell.className = `grid-cell D${columnNumber} p-1 rounded-lg sm:p-2 text-xs relative ${bgClass} ${textClass}`;
                 if (isCurrentDay) cell.classList.add('current-day');
                 if (isFirstCell) {
                     let iconName = REASON_ICONS[bookingReason] || REASON_ICONS["Other"];
-                    cell.innerHTML = `${actionsHTML} <div class="pt-6 sm:pt-5"><strong class="font-semibold block text-xs tracking-tighter sm:text-sm leading-tight">${record.fields.TeacherName}</strong><small class="flex items-center gap-1.5 text-blue-700 text-xs block mt-1 leading-tight"><span class="material-symbols-outlined" style="font-size: 16px;">${iconName}</span><span>${bookingReason || ''}</span></small></div>`;
+                    cell.innerHTML = `${actionsHTML} <div class="pt-6 sm:pt-5"><strong class="font-semibold block text-xs tracking-tighter sm:text-sm leading-tight">${record.fields.TeacherName}</strong><small class="flex items-center gap-1.5 ${iconColorClass} text-xs block mt-1 leading-tight"><span class="material-symbols-outlined" style="font-size: 16px;">${iconName}</span><span>${bookingReason || ''}</span></small></div>`;
                 } else {
-                    cell.innerHTML = `<div class="flex items-center justify-center h-full"><span class="material-symbols-outlined text-blue-300" style="font-size: 24px;">arrow_cool_down</span></div>`;
+                    cell.innerHTML = `<div class="flex items-center justify-center h-full"><span class="material-symbols-outlined ${arrowColorClass}" style="font-size: 24px;">arrow_cool_down</span></div>`;
                 }
             }
         }
