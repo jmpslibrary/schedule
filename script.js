@@ -18,7 +18,7 @@ const ADMIN_RECIPIENT_EMAIL = 'taylchri4039@ddsb.ca'; // Your admin email
 // --- App Configuration ---
 const ALLOWED_DOMAINS = ["ddsb.ca"]; 
 const ALLOWED_EMAILS = ["chrisjtaylor@gmail.com"]; // Add this new line
-const ADMIN_EMAILS = ["taylchri4039@ddsb.ca"];
+const ADMIN_EMAILS = ["taylchri4039@ddsb.ca", "hicklean2158@ddsb.ca"];
 
 const PERIOD_TIMES = ["8:05 - 8:35", "8:35 - 9:05", "9:05 - 9:35", "9:50 - 10:20", "10:20 - 10:50", "11:50 - 12:20", "12:20 - 12:50", "12:50 - 1:20", "1:35 - 2:05", "2:05 - 2:35"];
 const BOOKING_REASONS = ["Book Exchange", "Partnering", "Presentation", "Closed", "Coverage", "Other"];
